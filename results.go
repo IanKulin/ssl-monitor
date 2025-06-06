@@ -1,0 +1,159 @@
+package main
+
+import (
+	"encoding/json"
+	"html/template"
+	"net/http"
+	"os"
+	"sort"
+	"time"
+)
+
+type ResultDisplay struct {
+	URL        string
+	Name       string
+	ExpiryDate time.Time
+	DaysLeft   int
+	LastCheck  time.Time
+	Error      string
+	ColorClass string
+	HasError   bool
+}
+
+type ResultsPageData struct {
+	LastScan     time.Time
+	Results      []ResultDisplay
+	IsStale      bool
+	LastModified time.Time
+}
+
+func loadSitesList() (SitesList, error) {
+	var sitesList SitesList
+
+	data, err := os.ReadFile("data/sites.json")
+	if err != nil {
+		return sitesList, err
+	}
+
+	err = json.Unmarshal(data, &sitesList)
+	return sitesList, err
+}
+
+func loadResults() (ScanResults, error) {
+	var results ScanResults
+
+	data, err := os.ReadFile("data/results.json")
+	if err != nil {
+		return results, err
+	}
+
+	err = json.Unmarshal(data, &results)
+	return results, err
+}
+
+func getColorClass(daysLeft int, settings Settings) string {
+	if daysLeft >= settings.Dashboard.ColorThresholds.Green {
+		return "green"
+	} else if daysLeft >= settings.Dashboard.ColorThresholds.Yellow {
+		return "yellow"
+	} else {
+		return "red"
+	}
+}
+
+func resultsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" && r.FormValue("action") == "scan_now" {
+		// Load sites and run immediate scan
+		sites, err := loadSites()
+		if err != nil {
+			http.Error(w, "Error loading sites for scan", http.StatusInternalServerError)
+			return
+		}
+
+		// Run scan
+		results := scanAllSites(sites)
+		err = saveResults(results)
+		if err != nil {
+			http.Error(w, "Error saving scan results", http.StatusInternalServerError)
+			return
+		}
+
+		// Redirect to prevent re-submission
+		http.Redirect(w, r, "/results", http.StatusSeeOther)
+		return
+	}
+
+	// Load scan results
+	scanResults, err := loadResults()
+	if err != nil {
+		http.Error(w, "Error loading results", http.StatusInternalServerError)
+		return
+	}
+
+	// Load sites list to check if stale
+	sitesList, err := loadSitesList()
+	if err != nil {
+		http.Error(w, "Error loading sites list", http.StatusInternalServerError)
+		return
+	}
+
+	// Load settings for color thresholds
+	settings, err := loadSettings()
+	if err != nil {
+		http.Error(w, "Error loading settings", http.StatusInternalServerError)
+		return
+	}
+
+	// Convert to display format with color classes
+	displayResults := make([]ResultDisplay, len(scanResults.Results))
+	for i, result := range scanResults.Results {
+		display := ResultDisplay{
+			URL:        result.URL,
+			Name:       result.Name,
+			ExpiryDate: result.ExpiryDate,
+			DaysLeft:   result.DaysLeft,
+			LastCheck:  result.LastCheck,
+			Error:      result.Error,
+			HasError:   result.Error != "",
+		}
+
+		if display.HasError {
+			display.ColorClass = "grey"
+		} else {
+			display.ColorClass = getColorClass(result.DaysLeft, settings)
+		}
+
+		displayResults[i] = display
+	}
+
+	// Sort by urgency (errors first, then by days left ascending)
+	sort.Slice(displayResults, func(i, j int) bool {
+		// Errors go to top
+		if displayResults[i].HasError && !displayResults[j].HasError {
+			return true
+		}
+		if !displayResults[i].HasError && displayResults[j].HasError {
+			return false
+		}
+
+		// If both have errors or both don't, sort by days left (ascending = most urgent first)
+		if displayResults[i].HasError && displayResults[j].HasError {
+			return displayResults[i].Name < displayResults[j].Name // alphabetical for errors
+		}
+
+		return displayResults[i].DaysLeft < displayResults[j].DaysLeft
+	})
+
+	// Check if results are stale
+	isStale := !sitesList.LastModified.IsZero() && sitesList.LastModified.After(scanResults.LastScan)
+
+	pageData := ResultsPageData{
+		LastScan:     scanResults.LastScan,
+		Results:      displayResults,
+		IsStale:      isStale,
+		LastModified: sitesList.LastModified,
+	}
+
+	parsedTemplate := template.Must(template.New("results").Parse(resultsTemplate))
+	parsedTemplate.Execute(w, pageData)
+}

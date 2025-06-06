@@ -64,6 +64,8 @@ func main() {
 		fmt.Fprintf(w, "SSL Monitor running. Last scan: %s", results.LastScan.Format("2006-01-02 15:04:05"))
 	})
 	http.HandleFunc("/settings", settingsHandler)
+	http.HandleFunc("/sites", sitesHandler)
+	http.HandleFunc("/results", resultsHandler)
 	http.HandleFunc("/test-email", testEmailHandler)
 	http.HandleFunc("/test-ntfy", testNtfyHandler)
 

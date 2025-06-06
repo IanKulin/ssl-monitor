@@ -1,5 +1,12 @@
 {
-  "cSpell.words": ["GOARCH", "Ntfy", "onclick", "stackoverflow"],
+  "cSpell.words": [
+    "GOARCH",
+    "nowrap",
+    "Ntfy",
+    "onclick",
+    "onsubmit",
+    "stackoverflow"
+  ],
   "[go]": {
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {

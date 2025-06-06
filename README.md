@@ -36,8 +36,13 @@ The application is built as a single Go binary with embedded web interface, desi
 ```
 ssl-monitor/
 ├── main.go           # Application entry point, HTTP routing, scheduling
-├── settings.go       # Settings management and settings web page
-├── sites.go          # Site management and SSL certificate checking
+├── settings.go       # Settings management 
+├── settings-html.go  # HTML template for the settings view
+├── sites.go          # Site management (CRUD operations)
+├── sites-html.go     # HTML template for the sites management view
+├── scans.go          # SSL certificate scanning logic
+├── results.go        # Results display logic
+├── results-html.go   # HTML template for the results view
 ├── notifications.go  # (Future) Notification logic
 └── data/
     ├── settings.json # Application configuration
@@ -47,10 +52,12 @@ ssl-monitor/
 
 ### File Organization Philosophy
 
-Each Go file contains both the domain logic and related web interface:
-- `settings.go`: Settings structs, loading/saving, and settings web page
-- `sites.go`: Site management, SSL checking, and sites management page (future)
-- `main.go`: Application orchestration and dashboard page
+Each Go file contains domain-specific logic with separate template files:
+- `settings.go` + `settings-html.go`: Settings management and web interface
+- `sites.go` + `sites-html.go`: Site CRUD operations and management interface
+- `results.go` + `results-html.go`: Results display and dashboard interface
+- `scans.go`: SSL certificate scanning logic
+- `main.go`: Application orchestration and HTTP routing
 
 ## Current Status
 
@@ -72,13 +79,26 @@ Each Go file contains both the domain logic and related web interface:
 - Form validation and saving
 - Test buttons for notifications
 
+✅ **Sites Management**
+- Web interface for adding/editing/deleting sites
+- Form validation for URLs
+- Enable/disable sites without deletion
+- Inline editing with smooth UX
+
+✅ **Results Dashboard**
+- Load and display results from `results.json`
+- Sort sites by days until expiration (most urgent first)
+- Color-coded status indicators (green/yellow/red based on thresholds)
+- Show last scan time and stale data warnings
+- "Scan Now" functionality for immediate updates
+
 ✅ **Notification Infrastructure**
 - Postmark email integration with test functionality
 - NTFY push notification integration with test functionality
 - Configurable thresholds for different alert levels
 
 ✅ **JSON Data Storage**
-- Sites list management
+- Sites list management with modification tracking
 - Settings persistence
 - Scan results storage
 
@@ -133,7 +153,8 @@ Each Go file contains both the domain logic and related web interface:
       "enabled": true,
       "added": "2025-06-06T10:00:00Z"
     }
-  ]
+  ],
+  "last_modified": "2025-06-06T15:30:00Z"
 }
 ```
 
@@ -163,7 +184,8 @@ GOOS=linux GOARCH=amd64 go build -o ssl-monitor-linux
 
 ### Web Interface
 
-- Dashboard: `http://localhost:8080/`
+- Dashboard/Results: `http://localhost:8080/results`
+- Sites Management: `http://localhost:8080/sites`
 - Settings: `http://localhost:8080/settings`
 - Test endpoints: `/test-email`, `/test-ntfy`
 
@@ -171,28 +193,21 @@ GOOS=linux GOARCH=amd64 go build -o ssl-monitor-linux
 
 ### High Priority (Next Sprint)
 
-🔲 **Dashboard Implementation**
-- Load and display results from `results.json`
-- Sort sites by days until expiration
-- Color-coded status indicators (green/yellow/red based on thresholds)
-- Show last scan time and next scan time
-
 🔲 **Notification Logic**
 - Create `notifications.go` file
 - Implement threshold checking against scan results
 - Send notifications when thresholds are crossed
 - Prevent duplicate notifications (notification history/state)
 
-🔲 **Sites Management Page**
-- Web interface for adding/editing/deleting sites
-- Form validation for URLs
-- Enable/disable sites without deletion
-
 ### Medium Priority
 
 🔲 **Deployment**
 - Dockerfile for containerization
 - Docker Compose setup with bind mounts
+
+🔲 **Cosmetic**
+- Consistent navigation
+- Dark mode from browser settings
 
 ### Low Priority (Post-MVP)
 

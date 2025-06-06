@@ -1,38 +1,14 @@
 package main
 
 import (
-	"crypto/tls"
 	"encoding/json"
-	"fmt"
-	"net"
+	"html/template"
+	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 )
-
-type Site struct {
-	Name    string    `json:"name"`
-	URL     string    `json:"url"`
-	Enabled bool      `json:"enabled"`
-	Added   time.Time `json:"added"`
-}
-
-type SitesList struct {
-	Sites []Site `json:"sites"`
-}
-
-type CertResult struct {
-	URL        string    `json:"url"`
-	Name       string    `json:"name"`
-	ExpiryDate time.Time `json:"expiry_date"`
-	DaysLeft   int       `json:"days_left"`
-	LastCheck  time.Time `json:"last_check"`
-	Error      string    `json:"error,omitempty"`
-}
-
-type ScanResults struct {
-	LastScan time.Time    `json:"last_scan"`
-	Results  []CertResult `json:"results"`
-}
 
 func loadSites() ([]Site, error) {
 	data, err := os.ReadFile("data/sites.json")
@@ -49,71 +25,182 @@ func loadSites() ([]Site, error) {
 	return sitesList.Sites, nil
 }
 
-func checkCertificate(site Site) CertResult {
-	result := CertResult{
-		URL:       site.URL,
-		Name:      site.Name,
-		LastCheck: time.Now(),
+func saveSites(sites []Site) error {
+	sitesList := SitesList{
+		Sites:        sites,
+		LastModified: time.Now(),
 	}
-
-	// Set up connection with timeout
-	dialer := &net.Dialer{Timeout: 10 * time.Second}
-	conn, err := tls.DialWithDialer(dialer, "tcp", site.URL+":443", &tls.Config{
-		ServerName: site.URL,
-	})
-
+	data, err := json.MarshalIndent(sitesList, "", "  ")
 	if err != nil {
-		result.Error = err.Error()
-		return result
+		return err
 	}
-	defer conn.Close()
-
-	// Get the certificate
-	certs := conn.ConnectionState().PeerCertificates
-	if len(certs) == 0 {
-		result.Error = "No certificates found"
-		return result
-	}
-
-	// Use the first certificate (leaf certificate)
-	cert := certs[0]
-	result.ExpiryDate = cert.NotAfter
-	result.DaysLeft = int(time.Until(cert.NotAfter).Hours() / 24)
-
-	return result
+	return os.WriteFile("data/sites.json", data, 0644)
 }
 
-func scanAllSites(sites []Site) ScanResults {
-	results := ScanResults{
-		LastScan: time.Now(),
-		Results:  make([]CertResult, 0),
-	}
+func sitesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		action := r.FormValue("action")
 
-	for _, site := range sites {
-		if !site.Enabled {
-			continue
+		switch action {
+		case "add":
+			err := addSite(r)
+			if err != nil {
+				http.Error(w, "Error adding site: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+		case "edit":
+			err := editSite(r)
+			if err != nil {
+				http.Error(w, "Error editing site: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+		case "delete":
+			err := deleteSite(r)
+			if err != nil {
+				http.Error(w, "Error deleting site: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+		case "toggle":
+			err := toggleSite(r)
+			if err != nil {
+				http.Error(w, "Error toggling site: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 
-		fmt.Printf("Checking %s (%s)...\n", site.Name, site.URL)
-		result := checkCertificate(site)
-		results.Results = append(results.Results, result)
-
-		if result.Error != "" {
-			fmt.Printf("  Error: %s\n", result.Error)
-		} else {
-			fmt.Printf("  Expires: %s (%d days)\n",
-				result.ExpiryDate.Format("2006-01-02"), result.DaysLeft)
-		}
+		// Redirect to prevent re-submission on refresh
+		http.Redirect(w, r, "/sites", http.StatusSeeOther)
+		return
 	}
 
-	return results
+	sites, err := loadSites()
+	if err != nil {
+		http.Error(w, "Error loading sites", http.StatusInternalServerError)
+		return
+	}
+
+	parsedTemplate := template.Must(template.New("sites").Parse(sitesTemplate))
+	parsedTemplate.Execute(w, sites)
 }
 
-func saveResults(results ScanResults) error {
-	data, err := json.MarshalIndent(results, "", "  ")
+func addSite(r *http.Request) error {
+	err := r.ParseForm()
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile("data/results.json", data, 0644)
+	name := strings.TrimSpace(r.FormValue("name"))
+	url := strings.TrimSpace(r.FormValue("url"))
+
+	if name == "" || url == "" {
+		return nil // Ignore empty submissions
+	}
+
+	// Remove protocol if present
+	url = strings.TrimPrefix(url, "https://")
+	url = strings.TrimPrefix(url, "http://")
+
+	sites, err := loadSites()
+	if err != nil {
+		return err
+	}
+
+	newSite := Site{
+		Name:    name,
+		URL:     url,
+		Enabled: true,
+		Added:   time.Now(),
+	}
+
+	sites = append(sites, newSite)
+	return saveSites(sites)
+}
+
+func editSite(r *http.Request) error {
+	err := r.ParseForm()
+	if err != nil {
+		return err
+	}
+
+	indexStr := r.FormValue("index")
+	index, err := strconv.Atoi(indexStr)
+	if err != nil {
+		return err
+	}
+
+	name := strings.TrimSpace(r.FormValue("name"))
+	url := strings.TrimSpace(r.FormValue("url"))
+
+	if name == "" || url == "" {
+		return nil // Ignore empty submissions
+	}
+
+	// Remove protocol if present
+	url = strings.TrimPrefix(url, "https://")
+	url = strings.TrimPrefix(url, "http://")
+
+	sites, err := loadSites()
+	if err != nil {
+		return err
+	}
+
+	if index < 0 || index >= len(sites) {
+		return nil // Invalid index
+	}
+
+	sites[index].Name = name
+	sites[index].URL = url
+
+	return saveSites(sites)
+}
+
+func deleteSite(r *http.Request) error {
+	err := r.ParseForm()
+	if err != nil {
+		return err
+	}
+
+	indexStr := r.FormValue("index")
+	index, err := strconv.Atoi(indexStr)
+	if err != nil {
+		return err
+	}
+
+	sites, err := loadSites()
+	if err != nil {
+		return err
+	}
+
+	if index < 0 || index >= len(sites) {
+		return nil // Invalid index
+	}
+
+	// Remove site at index
+	sites = append(sites[:index], sites[index+1:]...)
+	return saveSites(sites)
+}
+
+func toggleSite(r *http.Request) error {
+	err := r.ParseForm()
+	if err != nil {
+		return err
+	}
+
+	indexStr := r.FormValue("index")
+	index, err := strconv.Atoi(indexStr)
+	if err != nil {
+		return err
+	}
+
+	sites, err := loadSites()
+	if err != nil {
+		return err
+	}
+
+	if index < 0 || index >= len(sites) {
+		return nil // Invalid index
+	}
+
+	sites[index].Enabled = !sites[index].Enabled
+	return saveSites(sites)
 }
