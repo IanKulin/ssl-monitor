@@ -1,0 +1,12 @@
+{
+  "cSpell.words": ["GOARCH", "Ntfy", "onclick", "stackoverflow"],
+  "[go]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    },
+    "editor.defaultFormatter": "golang.go"
+  },
+  "go.formatTool": "gofmt",
+  "go.lintOnSave": "package"
+}
