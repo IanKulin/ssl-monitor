@@ -1,5 +1,5 @@
 ## run locally
-- `LOG_LEVEL=INFO go run *.go`
+- `LOG_LEVEL=INFO go run src/*.go`
 
 ## to build & run for testing
 - `docker build -t ghcr.io/iankulin/ssl-monitor:latest .`

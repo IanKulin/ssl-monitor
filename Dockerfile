@@ -11,7 +11,7 @@ COPY go.mod ./
 RUN go mod download
 
 # Copy source code
-COPY *.go ./
+COPY src/*.go ./
 
 # Build the binary
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ssl-monitor .
