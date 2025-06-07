@@ -1,6 +1,6 @@
 services:
   ssl-monitor:
-    build: .
+    image: ghcr.io/iankulin/ssl-monitor:latest
     container_name: ssl-monitor
     ports:
       - "80:8080"

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"net/http"
 	"os"
@@ -10,10 +11,40 @@ import (
 	"time"
 )
 
+// Add this function to sites.go
+
+func initializeDefaultSites() error {
+	defaultSitesList := SitesList{
+		Sites:        []Site{}, // Empty sites list
+		LastModified: time.Now(),
+	}
+
+	data, err := json.MarshalIndent(defaultSitesList, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile("data/sites.json", data, 0644)
+}
+
+// Update the loadSites function
 func loadSites() ([]Site, error) {
 	data, err := os.ReadFile("data/sites.json")
 	if err != nil {
-		return nil, err
+		if os.IsNotExist(err) {
+			// File doesn't exist, create default sites list
+			fmt.Println("Sites file not found, creating default empty sites list...")
+			err = initializeDefaultSites()
+			if err != nil {
+				return nil, fmt.Errorf("failed to create default sites file: %w", err)
+			}
+			// Load the newly created sites
+			data, err = os.ReadFile("data/sites.json")
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	var sitesList SitesList

@@ -24,23 +24,11 @@ RUN apk --no-cache add ca-certificates tzdata
 
 WORKDIR /app
 
-# Create a non-root user
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
-
 # Copy the binary from builder stage
 COPY --from=builder /app/ssl-monitor .
 
-# Copy example settings as default configuration
-COPY example-settings.json data/settings.json
-COPY example-sites.json data/sites.json
-
-# Create data directory with proper permissions
-RUN mkdir -p data && \
-    chown -R appuser:appgroup /app
-
-# Switch to non-root user
-USER appuser
+# Create data directory
+RUN mkdir data
 
 # Expose port
 EXPOSE 8080

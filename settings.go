@@ -46,12 +46,63 @@ type Settings struct {
 	Dashboard         DashboardSettings    `json:"dashboard"`
 }
 
+// Add this function to settings.go
+
+func initializeDefaultSettings() error {
+	defaultSettings := Settings{
+		ScanIntervalHours: 24,
+		Notifications: NotificationSettings{
+			Ntfy: NtfySettings{
+				EnabledWarning:  false,
+				EnabledCritical: true,
+				URL:             "",
+			},
+			Email: EmailSettings{
+				EnabledWarning:  true,
+				EnabledCritical: true,
+				Provider:        "postmark",
+				ServerToken:     "",
+				From:            "",
+				To:              "",
+				MessageStream:   "ssl-monitor",
+			},
+		},
+		Dashboard: DashboardSettings{
+			Port: 8080,
+			ColorThresholds: struct {
+				Warning  int `json:"warning"`
+				Critical int `json:"critical"`
+			}{
+				Warning:  30,
+				Critical: 7,
+			},
+		},
+	}
+
+	return saveSettings(defaultSettings)
+}
+
+// Update the loadSettings function
 func loadSettings() (Settings, error) {
 	var settings Settings
 
 	data, err := os.ReadFile("data/settings.json")
 	if err != nil {
-		return settings, err
+		if os.IsNotExist(err) {
+			// File doesn't exist, create default settings
+			fmt.Println("Settings file not found, creating default settings...")
+			err = initializeDefaultSettings()
+			if err != nil {
+				return settings, fmt.Errorf("failed to create default settings: %w", err)
+			}
+			// Load the newly created settings
+			data, err = os.ReadFile("data/settings.json")
+			if err != nil {
+				return settings, err
+			}
+		} else {
+			return settings, err
+		}
 	}
 
 	err = json.Unmarshal(data, &settings)
