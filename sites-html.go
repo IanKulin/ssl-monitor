@@ -277,60 +277,38 @@ const sitesTemplate = `
         {{end}}
     </div>
 
-    <script>
-        let editingIndex = -1;
-
-        function editSite(index) {
-            // Cancel any existing edit
-            cancelEdit();
+   <script>
+        function testEmail() {
+            // Read current form values
+            const formData = {
+                server_token: document.querySelector('[name="email_server_token"]').value,
+                from: document.querySelector('[name="email_from"]').value,
+                to: document.querySelector('[name="email_to"]').value,
+                message_stream: document.querySelector('[name="email_message_stream"]').value
+            };
             
-            editingIndex = index;
-            const row = document.getElementById('row-' + index);
-            const nameEl = document.getElementById('name-' + index);
-            const urlEl = document.getElementById('url-' + index);
-            
-            const currentName = nameEl.textContent;
-            const currentUrl = urlEl.textContent;
-            
-            row.classList.add('edit-row');
-            
-            row.cells[0].innerHTML = 
-                '<div class="edit-form">' +
-                '<input type="text" id="edit-name-' + index + '" value="' + currentName + '" placeholder="Site name">' +
-                '<input type="text" id="edit-url-' + index + '" value="' + currentUrl + '" placeholder="URL">' +
-                '</div>';
-            
-            row.cells[3].innerHTML = 
-                '<button type="button" class="btn btn-primary" onclick="saveEdit(' + index + ')">Save</button> ' +
-                '<button type="button" class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>';
+            fetch('/test-email', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.text())
+            .then(data => alert(data));
         }
-
-        function saveEdit(index) {
-            const nameInput = document.getElementById('edit-name-' + index);
-            const urlInput = document.getElementById('edit-url-' + index);
+        
+        function testNtfy() {
+            // Read current form values
+            const formData = {
+                url: document.querySelector('[name="ntfy_url"]').value
+            };
             
-            if (!nameInput.value.trim() || !urlInput.value.trim()) {
-                alert('Please fill in both name and URL');
-                return;
-            }
-            
-            // Create and submit form
-            const form = document.createElement('form');
-            form.method = 'post';
-            form.innerHTML = 
-                '<input type="hidden" name="action" value="edit">' +
-                '<input type="hidden" name="index" value="' + index + '">' +
-                '<input type="hidden" name="name" value="' + nameInput.value + '">' +
-                '<input type="hidden" name="url" value="' + urlInput.value + '">';
-            
-            document.body.appendChild(form);
-            form.submit();
-        }
-
-        function cancelEdit() {
-            if (editingIndex >= 0) {
-                location.reload(); // Simple way to restore original content
-            }
+            fetch('/test-ntfy', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.text())
+            .then(data => alert(data));
         }
     </script>
 </body>

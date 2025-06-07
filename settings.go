@@ -46,7 +46,16 @@ type Settings struct {
 	Dashboard         DashboardSettings    `json:"dashboard"`
 }
 
-// Add this function to settings.go
+type TestEmailData struct {
+	ServerToken   string `json:"server_token"`
+	From          string `json:"from"`
+	To            string `json:"to"`
+	MessageStream string `json:"message_stream"`
+}
+
+type TestNtfyData struct {
+	URL string `json:"url"`
+}
 
 func initializeDefaultSettings() error {
 	defaultSettings := Settings{
@@ -218,25 +227,49 @@ func saveSettingsFromForm(r *http.Request) error {
 }
 
 func testEmailHandler(w http.ResponseWriter, r *http.Request) {
-	settings, err := loadSettings()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "Error loading settings")
-		return
+	var emailSettings EmailSettings
+
+	// Try to parse JSON from request body (new approach)
+	if r.Header.Get("Content-Type") == "application/json" {
+		var testData TestEmailData
+		err := json.NewDecoder(r.Body).Decode(&testData)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, "Error parsing test data")
+			return
+		}
+
+		// Use form values for testing
+		emailSettings = EmailSettings{
+			ServerToken:   testData.ServerToken,
+			From:          testData.From,
+			To:            testData.To,
+			MessageStream: testData.MessageStream,
+		}
+	} else {
+		// Fallback to existing settings (old approach)
+		settings, err := loadSettings()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, "Error loading settings")
+			return
+		}
+		emailSettings = settings.Notifications.Email
 	}
 
-	if settings.Notifications.Email.ServerToken == "" || settings.Notifications.Email.From == "" || settings.Notifications.Email.To == "" {
+	// Validate required fields
+	if emailSettings.ServerToken == "" || emailSettings.From == "" || emailSettings.To == "" {
 		fmt.Fprint(w, "Email settings incomplete (missing server token, from, or to address)")
 		return
 	}
 
-	// Prepare Postmark email payload
+	// Rest of the function remains the same, but use emailSettings instead of settings.Notifications.Email
 	emailData := map[string]string{
-		"From":          settings.Notifications.Email.From,
-		"To":            settings.Notifications.Email.To,
+		"From":          emailSettings.From,
+		"To":            emailSettings.To,
 		"Subject":       "SSL Monitor Test Email",
 		"HtmlBody":      "<h2>SSL Monitor Test</h2><p>If you receive this email, your email notifications are configured correctly!</p>",
-		"MessageStream": settings.Notifications.Email.MessageStream,
+		"MessageStream": emailSettings.MessageStream,
 	}
 
 	jsonData, err := json.Marshal(emailData)
@@ -246,7 +279,6 @@ func testEmailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Send to Postmark API
 	req, err := http.NewRequest("POST", "https://api.postmarkapp.com/email", bytes.NewBuffer(jsonData))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -256,7 +288,7 @@ func testEmailHandler(w http.ResponseWriter, r *http.Request) {
 
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Postmark-Server-Token", settings.Notifications.Email.ServerToken)
+	req.Header.Set("X-Postmark-Server-Token", emailSettings.ServerToken)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -275,21 +307,37 @@ func testEmailHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func testNtfyHandler(w http.ResponseWriter, r *http.Request) {
-	settings, err := loadSettings()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "Error loading settings")
-		return
+	var ntfyURL string
+
+	// Try to parse JSON from request body (new approach)
+	if r.Header.Get("Content-Type") == "application/json" {
+		var testData TestNtfyData
+		err := json.NewDecoder(r.Body).Decode(&testData)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, "Error parsing test data")
+			return
+		}
+		ntfyURL = testData.URL
+	} else {
+		// Fallback to existing settings (old approach)
+		settings, err := loadSettings()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, "Error loading settings")
+			return
+		}
+		ntfyURL = settings.Notifications.Ntfy.URL
 	}
 
-	if settings.Notifications.Ntfy.URL == "" {
+	if ntfyURL == "" {
 		fmt.Fprint(w, "NTFY URL not configured")
 		return
 	}
 
-	// Send test notification
+	// Rest remains the same, but use ntfyURL variable
 	message := "SSL Monitor test notification - if you see this, NTFY is working correctly!"
-	req, err := http.NewRequest("POST", settings.Notifications.Ntfy.URL, strings.NewReader(message))
+	req, err := http.NewRequest("POST", ntfyURL, strings.NewReader(message))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Error creating request: %s", err.Error())
