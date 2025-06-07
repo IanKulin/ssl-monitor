@@ -8,29 +8,15 @@ import (
 	"time"
 )
 
-type ServiceNotificationHistory struct {
-	LastWarning  *time.Time `json:"last_warning,omitempty"`
-	LastCritical *time.Time `json:"last_critical,omitempty"`
-	LastStatus   string     `json:"last_status,omitempty"` // "warning", "critical", or "good"
-}
-
 type NotificationHistory struct {
-	Email ServiceNotificationHistory `json:"email"`
-	Ntfy  ServiceNotificationHistory `json:"ntfy"`
+	LastStatus string    `json:"last_status"` // "normal", "warning", "critical"
+	LastScan   time.Time `json:"last_scan"`
 }
 
 type NotificationState struct {
 	LastNotificationScan time.Time                      `json:"last_notification_scan"`
 	NotificationHistory  map[string]NotificationHistory `json:"notification_history"`
 }
-
-type NotificationLevel string
-
-const (
-	NotificationWarning  NotificationLevel = "warning"
-	NotificationCritical NotificationLevel = "critical"
-	NotificationGood     NotificationLevel = "good"
-)
 
 func loadNotificationState() (NotificationState, error) {
 	var state NotificationState
@@ -60,112 +46,36 @@ func saveNotificationState(state NotificationState) error {
 	return os.WriteFile("data/notifications.json", data, 0644)
 }
 
-func determineNotificationLevelForService(daysLeft int, warningThreshold int, criticalThreshold int) NotificationLevel {
-	if daysLeft <= criticalThreshold {
-		return NotificationCritical
+func determineCurrentStatus(daysLeft int, settings Settings) string {
+	if daysLeft <= settings.Dashboard.ColorThresholds.Critical {
+		return "critical"
+	} else if daysLeft <= settings.Dashboard.ColorThresholds.Warning {
+		return "warning"
+	} else {
+		return "normal"
 	}
-	if daysLeft <= warningThreshold {
-		return NotificationWarning
-	}
-	return NotificationGood
 }
 
-func shouldSendServiceNotification(url string, level NotificationLevel, service string, state NotificationState) bool {
-	history, exists := state.NotificationHistory[url]
-	if !exists {
-		log.Printf("No notification history for %s, will send %s for level %s", url, service, level)
-		return level != NotificationGood
-	}
-
-	var serviceHistory ServiceNotificationHistory
-	switch service {
-	case "email":
-		serviceHistory = history.Email
-	case "ntfy":
-		serviceHistory = history.Ntfy
+func shouldSendEmailForStatus(status string, settings Settings) bool {
+	switch status {
+	case "warning":
+		return settings.Notifications.Email.EnabledWarning
+	case "critical":
+		return settings.Notifications.Email.EnabledCritical
 	default:
-		log.Printf("Unknown service %s", service)
 		return false
 	}
-
-	// If current status is good, don't send notifications
-	if level == NotificationGood {
-		log.Printf("Level is good for %s %s, not sending notification", url, service)
-		return false
-	}
-
-	// Calculate cooldown period (prevent spam)
-	cooldownHours := 24 // Default 24 hours between same-level notifications
-	if level == NotificationCritical {
-		cooldownHours = 12 // More frequent for critical
-	}
-
-	now := time.Now()
-
-	// Check if we should send based on level and cooldown
-	switch level {
-	case NotificationWarning:
-		if serviceHistory.LastWarning != nil {
-			timeSince := now.Sub(*serviceHistory.LastWarning)
-			log.Printf("Last %s warning for %s was %v ago (cooldown: %dh)", service, url, timeSince, cooldownHours)
-			if timeSince < time.Duration(cooldownHours)*time.Hour {
-				log.Printf("Still in cooldown for %s %s warning", url, service)
-				return false // Still in cooldown
-			}
-		} else {
-			log.Printf("No previous %s warning notification for %s", service, url)
-		}
-		return true
-
-	case NotificationCritical:
-		if serviceHistory.LastCritical != nil {
-			timeSince := now.Sub(*serviceHistory.LastCritical)
-			log.Printf("Last %s critical for %s was %v ago (cooldown: %dh)", service, url, timeSince, cooldownHours)
-			if timeSince < time.Duration(cooldownHours)*time.Hour {
-				log.Printf("Still in cooldown for %s %s critical", url, service)
-				return false // Still in cooldown
-			}
-		} else {
-			log.Printf("No previous %s critical notification for %s", service, url)
-		}
-		return true
-	}
-
-	return false
 }
 
-func updateServiceNotificationHistory(url string, level NotificationLevel, service string, state *NotificationState) {
-	history := state.NotificationHistory[url]
-	now := time.Now()
-
-	var serviceHistory ServiceNotificationHistory
-	switch service {
-	case "email":
-		serviceHistory = history.Email
-	case "ntfy":
-		serviceHistory = history.Ntfy
+func shouldSendNtfyForStatus(status string, settings Settings) bool {
+	switch status {
+	case "warning":
+		return settings.Notifications.Ntfy.EnabledWarning
+	case "critical":
+		return settings.Notifications.Ntfy.EnabledCritical
 	default:
-		return
+		return false
 	}
-
-	switch level {
-	case NotificationWarning:
-		serviceHistory.LastWarning = &now
-	case NotificationCritical:
-		serviceHistory.LastCritical = &now
-	}
-
-	serviceHistory.LastStatus = string(level)
-
-	// Update the specific service history
-	switch service {
-	case "email":
-		history.Email = serviceHistory
-	case "ntfy":
-		history.Ntfy = serviceHistory
-	}
-
-	state.NotificationHistory[url] = history
 }
 
 func processNotifications(results ScanResults, settings Settings) error {
@@ -180,60 +90,62 @@ func processNotifications(results ScanResults, settings Settings) error {
 	notificationsSent := 0
 
 	for _, result := range results.Results {
-		// Skip sites with errors - they need separate handling
+		// Skip sites with errors
 		if result.Error != "" {
 			log.Printf("Skipping %s due to scan error: %s", result.URL, result.Error)
 			continue
 		}
 
-		// Process email notifications if enabled
-		if settings.Notifications.Email.Enabled {
-			emailLevel := determineNotificationLevelForService(
-				result.DaysLeft, 
-				settings.Notifications.Email.Thresholds.Warning,
-				settings.Notifications.Email.Thresholds.Critical,
-			)
-			log.Printf("Site %s (%d days left) email level: %s (thresholds w:%d c:%d)", 
-				result.URL, result.DaysLeft, emailLevel,
-				settings.Notifications.Email.Thresholds.Warning,
-				settings.Notifications.Email.Thresholds.Critical)
+		// Determine current status using dashboard thresholds
+		currentStatus := determineCurrentStatus(result.DaysLeft, settings)
+		log.Printf("Site %s (%d days left) current status: %s", result.URL, result.DaysLeft, currentStatus)
 
-			if shouldSendServiceNotification(result.URL, emailLevel, "email", state) {
-				log.Printf("Attempting to send email notification for %s at level %s", result.URL, emailLevel)
-				err := sendEmailNotification(result, emailLevel, settings)
+		// Get previous status from history
+		history, exists := state.NotificationHistory[result.URL]
+		previousStatus := "normal" // default for new sites
+		if exists {
+			previousStatus = history.LastStatus
+		}
+
+		log.Printf("Site %s status change: %s -> %s", result.URL, previousStatus, currentStatus)
+
+		// Only send notifications if status changed and new status needs notifications
+		if currentStatus != previousStatus && (currentStatus == "warning" || currentStatus == "critical") {
+			log.Printf("Status changed to %s for %s, checking enabled services", currentStatus, result.URL)
+
+			// Send email if enabled for this status
+			if shouldSendEmailForStatus(currentStatus, settings) {
+				log.Printf("Sending email notification for %s (status: %s)", result.URL, currentStatus)
+				err := sendEmailNotification(result, currentStatus, settings)
 				if err != nil {
 					log.Printf("Error sending email notification for %s: %v", result.URL, err)
 				} else {
-					updateServiceNotificationHistory(result.URL, emailLevel, "email", &state)
 					notificationsSent++
 					log.Printf("Successfully sent email notification for %s", result.URL)
 				}
 			}
-		}
 
-		// Process NTFY notifications if enabled
-		if settings.Notifications.Ntfy.Enabled {
-			ntfyLevel := determineNotificationLevelForService(
-				result.DaysLeft,
-				settings.Notifications.Ntfy.Thresholds.Warning,
-				settings.Notifications.Ntfy.Thresholds.Critical,
-			)
-			log.Printf("Site %s (%d days left) ntfy level: %s (thresholds w:%d c:%d)", 
-				result.URL, result.DaysLeft, ntfyLevel,
-				settings.Notifications.Ntfy.Thresholds.Warning,
-				settings.Notifications.Ntfy.Thresholds.Critical)
-
-			if shouldSendServiceNotification(result.URL, ntfyLevel, "ntfy", state) {
-				log.Printf("Attempting to send NTFY notification for %s at level %s", result.URL, ntfyLevel)
-				err := sendNtfyNotification(result, ntfyLevel, settings)
+			// Send NTFY if enabled for this status
+			if shouldSendNtfyForStatus(currentStatus, settings) {
+				log.Printf("Sending NTFY notification for %s (status: %s)", result.URL, currentStatus)
+				err := sendNtfyNotification(result, currentStatus, settings)
 				if err != nil {
 					log.Printf("Error sending NTFY notification for %s: %v", result.URL, err)
 				} else {
-					updateServiceNotificationHistory(result.URL, ntfyLevel, "ntfy", &state)
 					notificationsSent++
 					log.Printf("Successfully sent NTFY notification for %s", result.URL)
 				}
 			}
+		} else if currentStatus == previousStatus {
+			log.Printf("No status change for %s, skipping notifications", result.URL)
+		} else {
+			log.Printf("Status changed to %s for %s, but no notifications needed", result.URL, currentStatus)
+		}
+
+		// Update history with current status
+		state.NotificationHistory[result.URL] = NotificationHistory{
+			LastStatus: currentStatus,
+			LastScan:   results.LastScan,
 		}
 	}
 

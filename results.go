@@ -25,6 +25,7 @@ type ResultsPageData struct {
 	Results      []ResultDisplay
 	IsStale      bool
 	LastModified time.Time
+	Settings     Settings // Add settings so template can access thresholds
 }
 
 func loadSitesList() (SitesList, error) {
@@ -52,31 +53,26 @@ func loadResults() (ScanResults, error) {
 }
 
 func getColorClass(daysLeft int, settings Settings) string {
-	if daysLeft >= settings.Dashboard.ColorThresholds.Green {
-		return "green"
-	} else if daysLeft >= settings.Dashboard.ColorThresholds.Yellow {
+	if daysLeft <= settings.Dashboard.ColorThresholds.Critical {
+		return "red"
+	} else if daysLeft <= settings.Dashboard.ColorThresholds.Warning {
 		return "yellow"
 	} else {
-		return "red"
+		return "green"
 	}
 }
 
 func resultsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" && r.FormValue("action") == "scan_now" {
-		// Load sites and run immediate scan
+		// Load sites and run immediate scan with notifications
 		sites, err := loadSites()
 		if err != nil {
 			http.Error(w, "Error loading sites for scan", http.StatusInternalServerError)
 			return
 		}
 
-		// Run scan
-		results := scanAllSites(sites)
-		err = saveResults(results)
-		if err != nil {
-			http.Error(w, "Error saving scan results", http.StatusInternalServerError)
-			return
-		}
+		// Run scan with notifications (using the shared function from main.go)
+		runScanWithNotifications(sites)
 
 		// Redirect to prevent re-submission
 		http.Redirect(w, r, "/results", http.StatusSeeOther)
@@ -104,7 +100,7 @@ func resultsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert to display format with color classes
+	// Convert to display format with color classes and status text
 	displayResults := make([]ResultDisplay, len(scanResults.Results))
 	for i, result := range scanResults.Results {
 		display := ResultDisplay{
@@ -152,6 +148,7 @@ func resultsHandler(w http.ResponseWriter, r *http.Request) {
 		Results:      displayResults,
 		IsStale:      isStale,
 		LastModified: sitesList.LastModified,
+		Settings:     settings, // Pass settings to template
 	}
 
 	parsedTemplate := template.Must(template.New("results").Parse(resultsTemplate))

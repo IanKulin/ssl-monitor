@@ -12,25 +12,19 @@ import (
 )
 
 type NtfySettings struct {
-	Enabled    bool   `json:"enabled"`
-	URL        string `json:"url"`
-	Thresholds struct {
-		Warning  int `json:"warning"`
-		Critical int `json:"critical"`
-	} `json:"thresholds"`
+	EnabledWarning  bool   `json:"enabled_warning"`
+	EnabledCritical bool   `json:"enabled_critical"`
+	URL             string `json:"url"`
 }
 
 type EmailSettings struct {
-	Enabled       bool   `json:"enabled"`
-	Provider      string `json:"provider"`
-	ServerToken   string `json:"server_token"`
-	From          string `json:"from"`
-	To            string `json:"to"`
-	MessageStream string `json:"message_stream"`
-	Thresholds    struct {
-		Warning  int `json:"warning"`
-		Critical int `json:"critical"`
-	} `json:"thresholds"`
+	EnabledWarning bool   `json:"enabled_warning"`
+	EnabledCritical bool   `json:"enabled_critical"`
+	Provider        string `json:"provider"`
+	ServerToken     string `json:"server_token"`
+	From            string `json:"from"`
+	To              string `json:"to"`
+	MessageStream   string `json:"message_stream"`
 }
 
 type NotificationSettings struct {
@@ -41,9 +35,8 @@ type NotificationSettings struct {
 type DashboardSettings struct {
 	Port            int `json:"port"`
 	ColorThresholds struct {
-		Green  int `json:"green"`
-		Yellow int `json:"yellow"`
-		Red    int `json:"red"`
+		Warning  int `json:"warning"`
+		Critical int `json:"critical"`
 	} `json:"color_thresholds"`
 }
 
@@ -114,38 +107,30 @@ func saveSettingsFromForm(r *http.Request) error {
 		}
 	}
 
+	// Dashboard settings
+	if val := r.FormValue("dashboard_warning"); val != "" {
+		if days := parseInt(val); days > 0 {
+			settings.Dashboard.ColorThresholds.Warning = days
+		}
+	}
+	if val := r.FormValue("dashboard_critical"); val != "" {
+		if days := parseInt(val); days > 0 {
+			settings.Dashboard.ColorThresholds.Critical = days
+		}
+	}
+
 	// Email settings
-	settings.Notifications.Email.Enabled = r.FormValue("email_enabled") == "on"
+	settings.Notifications.Email.EnabledWarning = r.FormValue("email_enabled_warning") == "on"
+	settings.Notifications.Email.EnabledCritical = r.FormValue("email_enabled_critical") == "on"
 	settings.Notifications.Email.ServerToken = r.FormValue("email_server_token")
 	settings.Notifications.Email.From = r.FormValue("email_from")
 	settings.Notifications.Email.To = r.FormValue("email_to")
 	settings.Notifications.Email.MessageStream = r.FormValue("email_message_stream")
 
-	if val := r.FormValue("email_warning"); val != "" {
-		if days := parseInt(val); days > 0 {
-			settings.Notifications.Email.Thresholds.Warning = days
-		}
-	}
-	if val := r.FormValue("email_critical"); val != "" {
-		if days := parseInt(val); days > 0 {
-			settings.Notifications.Email.Thresholds.Critical = days
-		}
-	}
-
 	// NTFY settings
-	settings.Notifications.Ntfy.Enabled = r.FormValue("ntfy_enabled") == "on"
+	settings.Notifications.Ntfy.EnabledWarning = r.FormValue("ntfy_enabled_warning") == "on"
+	settings.Notifications.Ntfy.EnabledCritical = r.FormValue("ntfy_enabled_critical") == "on"
 	settings.Notifications.Ntfy.URL = r.FormValue("ntfy_url")
-
-	if val := r.FormValue("ntfy_warning"); val != "" {
-		if days := parseInt(val); days > 0 {
-			settings.Notifications.Ntfy.Thresholds.Warning = days
-		}
-	}
-	if val := r.FormValue("ntfy_critical"); val != "" {
-		if days := parseInt(val); days > 0 {
-			settings.Notifications.Ntfy.Thresholds.Critical = days
-		}
-	}
 
 	return saveSettings(settings)
 }

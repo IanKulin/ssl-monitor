@@ -4,24 +4,28 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 )
 
-func sendEmailNotification(result CertResult, level NotificationLevel, settings Settings) error {
-	levelTitle := string(level)
-	if level == NotificationCritical {
-		levelTitle = "Critical"
-	} else if level == NotificationWarning {
-		levelTitle = "Warning"
+func sendEmailNotification(result CertResult, status string, settings Settings) error {
+	var statusTitle string
+	switch status {
+	case "critical":
+		statusTitle = "Critical"
+	case "warning":
+		statusTitle = "Warning"
+	default:
+		statusTitle = "Notice"
 	}
 
-	subject := fmt.Sprintf("SSL Certificate %s: %s", levelTitle, result.Name)
+	subject := fmt.Sprintf("SSL Certificate %s: %s", statusTitle, result.Name)
 
 	var body string
-	switch level {
-	case NotificationWarning:
+	switch status {
+	case "warning":
 		body = fmt.Sprintf(`
 <h2>SSL Certificate Warning</h2>
 <p>The SSL certificate for <strong>%s</strong> (%s) is approaching expiration.</p>
@@ -33,7 +37,7 @@ func sendEmailNotification(result CertResult, level NotificationLevel, settings 
 <p>Please renew the certificate soon to avoid service interruption.</p>
 `, result.Name, result.URL, result.DaysLeft, result.ExpiryDate.Format("2006-01-02"), result.LastCheck.Format("2006-01-02 15:04:05"))
 
-	case NotificationCritical:
+	case "critical":
 		body = fmt.Sprintf(`
 <h2>🚨 SSL Certificate Critical Warning</h2>
 <p>The SSL certificate for <strong>%s</strong> (%s) is expiring very soon!</p>
@@ -71,9 +75,12 @@ func sendEmailNotification(result CertResult, level NotificationLevel, settings 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Printf("NTFY HTTP error: %v", err)
 		return err
 	}
 	defer resp.Body.Close()
+
+	log.Printf("Email response: status=%d", resp.StatusCode)
 
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("postmark returned status code: %d", resp.StatusCode)
@@ -82,24 +89,26 @@ func sendEmailNotification(result CertResult, level NotificationLevel, settings 
 	return nil
 }
 
-func sendNtfyNotification(result CertResult, level NotificationLevel, settings Settings) error {
+func sendNtfyNotification(result CertResult, status string, settings Settings) error {
 	var message, title, priority, tags string
 
-	switch level {
-	case NotificationWarning:
+	switch status {
+	case "warning":
 		title = fmt.Sprintf("SSL Warning: %s", result.Name)
 		message = fmt.Sprintf("Certificate for %s expires in %d days (%s)",
 			result.URL, result.DaysLeft, result.ExpiryDate.Format("2006-01-02"))
 		priority = "high"
 		tags = "warning,ssl-monitor"
 
-	case NotificationCritical:
+	case "critical":
 		title = fmt.Sprintf("🚨 SSL Critical: %s", result.Name)
 		message = fmt.Sprintf("URGENT: Certificate for %s expires in %d days (%s)!",
 			result.URL, result.DaysLeft, result.ExpiryDate.Format("2006-01-02"))
 		priority = "urgent"
 		tags = "warning,ssl-monitor,urgent"
 	}
+
+	log.Printf("Sending NTFY: URL=%s, Title=%s, Priority=%s", settings.Notifications.Ntfy.URL, title, priority)
 
 	req, err := http.NewRequest("POST", settings.Notifications.Ntfy.URL, strings.NewReader(message))
 	if err != nil {
@@ -113,13 +122,17 @@ func sendNtfyNotification(result CertResult, level NotificationLevel, settings S
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Printf("NTFY HTTP error: %v", err)
 		return err
 	}
 	defer resp.Body.Close()
+
+	log.Printf("NTFY response: status=%d", resp.StatusCode)
 
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("ntfy returned status code: %d", resp.StatusCode)
 	}
 
+	log.Printf("NTFY notification sent successfully for %s", result.URL)
 	return nil
 }

@@ -8,7 +8,7 @@ This tool helps prevent unexpected SSL certificate expirations by:
 - Regularly scanning a list of websites for certificate expiry dates
 - Providing a web dashboard to view certificate status
 - Sending notifications via email (Postmark) and push notifications (NTFY)
-- Offering configurable thresholds for warnings and critical alerts
+- Using unified thresholds for both dashboard colors and notifications
 
 ## Architecture
 
@@ -28,7 +28,7 @@ The application is built as a single Go binary with embedded web interface, desi
 2. Scanner checks each enabled site's SSL certificate
 3. Results are saved with expiry dates and days remaining
 4. Scheduler repeats scans at configured intervals
-5. Notifications are sent when certificates approach thresholds
+5. Notifications are sent when certificate status changes to warning/critical
 6. Web interface provides management and monitoring
 
 ## Project Structure
@@ -43,11 +43,13 @@ ssl-monitor/
 ├── scans.go          # SSL certificate scanning logic
 ├── results.go        # Results display logic
 ├── results-html.go   # HTML template for the results view
-├── notifications.go  # (Future) Notification logic
+├── notifications.go  # Notification logic and status change detection
+├── notify-send.go    # Email and NTFY notification sending
 └── data/
-    ├── settings.json # Application configuration
-    ├── sites.json    # List of websites to monitor
-    └── results.json  # Latest scan results
+    ├── settings.json      # Application configuration
+    ├── sites.json         # List of websites to monitor
+    ├── results.json       # Latest scan results
+    └── notifications.json # Notification history and state
 ```
 
 ### File Organization Philosophy
@@ -57,50 +59,56 @@ Each Go file contains domain-specific logic with separate template files:
 - `sites.go` + `sites-html.go`: Site CRUD operations and management interface
 - `results.go` + `results-html.go`: Results display and dashboard interface
 - `scans.go`: SSL certificate scanning logic
+- `notifications.go`: Status change detection and notification orchestration
+- `notify-send.go`: Service-specific notification delivery
 - `main.go`: Application orchestration and HTTP routing
 
 ## Current Status
 
-### Completed Features
+### Completed Features ✅
 
-✅ **SSL Certificate Scanning**
+**SSL Certificate Scanning**
 - Connects to websites on port 443
 - Extracts certificate expiry dates
 - Calculates days until expiration
 - Handles connection errors gracefully
 
-✅ **Configurable Scheduling**
+**Configurable Scheduling**
 - JSON-based settings management
 - Configurable scan intervals
 - Automatic background scanning
 
-✅ **Settings Management**
+**Settings Management**
 - Web-based settings interface
-- Form validation and saving
+- Unified thresholds for dashboard and notifications
+- Per-service notification toggles (warning/critical)
 - Test buttons for notifications
 
-✅ **Sites Management**
+**Sites Management**
 - Web interface for adding/editing/deleting sites
 - Form validation for URLs
 - Enable/disable sites without deletion
 - Inline editing with smooth UX
 
-✅ **Results Dashboard**
+**Results Dashboard**
 - Load and display results from `results.json`
 - Sort sites by days until expiration (most urgent first)
 - Color-coded status indicators (green/yellow/red based on thresholds)
 - Show last scan time and stale data warnings
 - "Scan Now" functionality for immediate updates
 
-✅ **Notification Infrastructure**
-- Postmark email integration with test functionality
-- NTFY push notification integration with test functionality
-- Configurable thresholds for different alert levels
+**Smart Notification System**
+- Status change detection (only sends when status actually changes)
+- Per-service enablement (email/NTFY for warning/critical separately)
+- Uses same thresholds as dashboard for consistency
+- Notification history tracking to prevent duplicates
+- Postmark email and NTFY push notification support
 
-✅ **JSON Data Storage**
+**JSON Data Storage**
 - Sites list management with modification tracking
 - Settings persistence
 - Scan results storage
+- Simple notification state tracking
 
 ## Configuration
 
@@ -111,32 +119,25 @@ Each Go file contains domain-specific logic with separate template files:
   "scan_interval_hours": 24,
   "notifications": {
     "ntfy": {
-      "enabled": false,
-      "url": "https://ntfy.sh/your-topic",
-      "thresholds": {
-        "warning": 30,
-        "critical": 7
-      }
+      "enabled_warning": false,
+      "enabled_critical": true,
+      "url": "https://ntfy.sh/your-topic"
     },
     "email": {
-      "enabled": false,
+      "enabled_warning": true,
+      "enabled_critical": true,
       "provider": "postmark",
       "server_token": "your-postmark-token",
       "from": "ssl-monitor@yourdomain.com",
       "to": "you@yourdomain.com",
-      "message_stream": "ssl-monitor",
-      "thresholds": {
-        "warning": 14,
-        "critical": 3
-      }
+      "message_stream": "ssl-monitor"
     }
   },
   "dashboard": {
     "port": 8080,
     "color_thresholds": {
-      "green": 60,
-      "yellow": 30,
-      "red": 7
+      "warning": 30,
+      "critical": 7
     }
   }
 }
@@ -157,6 +158,25 @@ Each Go file contains domain-specific logic with separate template files:
   "last_modified": "2025-06-06T15:30:00Z"
 }
 ```
+
+## How Notifications Work
+
+The notification system uses a simple, predictable approach:
+
+1. **Unified Thresholds**: Dashboard color thresholds control both UI display and notification triggers
+2. **Status Change Detection**: Notifications only sent when a site's status changes (normal → warning → critical)
+3. **Per-Service Control**: Each notification service can be enabled/disabled for warning and critical levels independently
+4. **No Spam**: Sites at the same status level don't generate repeat notifications
+
+### Example Behavior
+
+With thresholds `warning: 30, critical: 7`:
+
+- **Site at 45 days**: Green "Good", no notifications
+- **Site drops to 25 days**: Yellow "Warning", sends to services with `enabled_warning: true`
+- **Site stays at 25 days**: No additional notifications (no status change)
+- **Site drops to 5 days**: Red "Critical", sends to services with `enabled_critical: true`
+- **Certificate renewed to 90 days**: Green "Good", no notifications (but history updated)
 
 ## Development
 
@@ -189,39 +209,32 @@ GOOS=linux GOARCH=amd64 go build -o ssl-monitor-linux
 - Settings: `http://localhost:8080/settings`
 - Test endpoints: `/test-email`, `/test-ntfy`
 
-## Roadmap to MVP
+## Roadmap
 
-### High Priority (Next Sprint)
-
-🔲 **Notification Logic**
-- Create `notifications.go` file
-- Implement threshold checking against scan results
-- Send notifications when thresholds are crossed
-- Prevent duplicate notifications (notification history/state)
-
-### Medium Priority
+### Immediate Priorities
 
 🔲 **Deployment**
 - Dockerfile for containerization
 - Docker Compose setup with bind mounts
 
-🔲 **Cosmetic**
-- Consistent navigation
-- Dark mode from browser settings
+🔲 **Polish**
+- Consistent navigation across all pages
+- Dark mode support from browser settings
 
-### Low Priority (Post-MVP)
+### Future Enhancements
 
 🔲 **Enhanced Dashboard**
 - Search/filter functionality
 - Detailed view for individual certificates
 - Historical data (certificate renewal tracking)
 
-🔲 **Improved Notifications**
+🔲 **Extended Notifications**
 - Template-based notification messages
-- Multiple recipients for email
-- Webhook support for additional services
+- Multiple email recipients
+- Webhook support for additional services (Slack, Discord, etc.)
 
 🔲 **Operational Features**
 - Health check endpoint for monitoring
 - Graceful shutdown handling
 - Better error logging and recovery
+- Metrics and observability
