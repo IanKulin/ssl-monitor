@@ -92,15 +92,9 @@ func main() {
 	// Start scheduled scanning with configurable interval
 	go runScheduledScans(sites, time.Duration(settings.ScanIntervalHours)*time.Hour)
 
-	// Simple web server for now
+	// Routes
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Load latest results for display
-		results, err := loadResults()
-		if err != nil {
-			fmt.Fprintf(w, "SSL Monitor running. Error loading results: %v", err)
-		} else {
-			fmt.Fprintf(w, "SSL Monitor running. Last scan: %s", results.LastScan.Format("2006-01-02 15:04:05"))
-		}
+		http.Redirect(w, r, "/results", http.StatusSeeOther)
 	})
 	http.HandleFunc("/settings", settingsHandler)
 	http.HandleFunc("/sites", sitesHandler)

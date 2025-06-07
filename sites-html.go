@@ -19,8 +19,12 @@ const sitesTemplate = `
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         h1 { 
-            margin: 0; 
+            margin: 0 0 10px 0; 
             color: #333; 
+        }
+        .subtitle { 
+            color: #666; 
+            font-size: 14px; 
         }
         .nav {
             margin-bottom: 20px;
@@ -177,17 +181,25 @@ const sitesTemplate = `
         .inline-form {
             display: inline;
         }
+        .nav a.active {
+            background: #007cba;
+            font-weight: 600;
+            border: 2px solid #333;
+            cursor: default;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.5);
+        }
     </style>
 </head>
 <body>
     <div class="nav">
         <a href="/results">Results</a>
-        <a href="/sites">Sites</a>
+        <a href="/sites" class="active">Sites</a>
         <a href="/settings">Settings</a>
     </div>
 
     <div class="header">
         <h1>Manage Sites</h1>
+        <div class="subtitle">Add, edit, and configure websites to monitor for SSL certificate expiration</div>
     </div>
 
     <div class="add-site-form">

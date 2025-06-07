@@ -280,6 +280,11 @@ With thresholds `warning: 30, critical: 7`:
 
 ### Immediate Priorities
 
+🔲 **Bugs**
+- on settings page - test buttons for testing notifications don't use the settings you've just entered (but not saved)
+- every web page should have buttons for "Results", "Sites", "Settings"
+- '/' route should redirect to /results
+
 🔲 **Polish**
 - Consistent navigation and look across all pages
 - Dark mode support from browser settings

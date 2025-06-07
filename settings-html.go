@@ -21,6 +21,21 @@ const settingsTemplate = `
         .nav a:hover {
             background: #005a8b;
         }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { 
+            margin: 0 0 10px 0; 
+            color: #333; 
+        }
+        .subtitle { 
+            color: #666; 
+            font-size: 14px; 
+        }
         .section { 
             margin-bottom: 30px; 
             padding: 20px; 
@@ -57,16 +72,26 @@ const settingsTemplate = `
             color: #666;
             margin-top: 5px;
         }
+        .nav a.active {
+            background: #007cba;
+            font-weight: 600;
+            border: 2px solid #333;
+            cursor: default;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.5);
+        }
     </style>
 </head>
 <body>
     <div class="nav">
         <a href="/results">Results</a>
         <a href="/sites">Sites</a>
-        <a href="/settings">Settings</a>
+        <a href="/settings" class="active">Settings</a>
     </div>
 
-    <h1>SSL Monitor Settings</h1>
+    <div class="header">
+        <h1>SSL Monitor Settings</h1>
+        <div class="subtitle">Configure scanning intervals, notification thresholds, and alert services</div>
+    </div>
     
     <form method="post">
         <div class="section">

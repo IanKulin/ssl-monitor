@@ -130,12 +130,20 @@ const resultsTemplate = `
         .btn-scan-now:hover {
             background: #e0a800;
         }
+        .nav a.active {
+            background: #007cba;
+            font-weight: 600;
+            border: 2px solid #333;
+            cursor: default;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.5);
+        }
     </style>
 </head>
 <body>
     <div class="nav">
+        <a href="/results" class="active">Results</a>
+        <a href="/sites">Sites</a>
         <a href="/settings">Settings</a>
-        <a href="/results">Results</a>
     </div>
 
     <div class="header">
