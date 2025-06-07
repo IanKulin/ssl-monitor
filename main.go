@@ -8,18 +8,44 @@ import (
 	"time"
 )
 
-func runScanWithNotifications(sites []Site) {
-	fmt.Printf("\n[%s] Starting scan...\n", time.Now().Format("2006-01-02 15:04:05"))
-	results := scanAllSites(sites)
+// Add this to main.go
 
-	err := saveResults(results)
-	if err != nil {
-		log.Printf("Error saving scan results: %v", err)
+func runScanWithNotifications(sites []Site) {
+	runScanWithNotificationsMode(sites, false) // false = full scan
+}
+
+func runScanWithNotificationsMode(sites []Site, notificationsOnly bool) {
+	var results ScanResults
+
+	if notificationsOnly {
+		// Load existing results and only process notifications
+		fmt.Printf("\n[%s] Processing notifications with existing certificate data...\n", time.Now().Format("2006-01-02 15:04:05"))
+
+		existingResults, err := loadResults()
+		if err != nil {
+			log.Printf("Error loading existing results for notification processing: %v", err)
+			return
+		}
+
+		// Use existing results but update the scan time to trigger notification processing
+		results = existingResults
+		results.LastScan = time.Now()
+
+		fmt.Printf("Processing notifications for %d existing certificate results.\n", len(results.Results))
 	} else {
-		fmt.Printf("Scan complete. Checked %d sites.\n", len(results.Results))
+		// Full scan with certificate checking
+		fmt.Printf("\n[%s] Starting full certificate scan...\n", time.Now().Format("2006-01-02 15:04:05"))
+		results = scanAllSites(sites)
+
+		err := saveResults(results)
+		if err != nil {
+			log.Printf("Error saving scan results: %v", err)
+		} else {
+			fmt.Printf("Scan complete. Checked %d sites.\n", len(results.Results))
+		}
 	}
 
-	// Process notifications after successful scan
+	// Process notifications after scan (or using existing data)
 	settings, err := loadSettings()
 	if err != nil {
 		log.Printf("Error loading settings for notifications: %v", err)
@@ -78,6 +104,7 @@ func main() {
 	})
 	http.HandleFunc("/settings", settingsHandler)
 	http.HandleFunc("/sites", sitesHandler)
+	http.HandleFunc("/status", statusHandler)
 	http.HandleFunc("/results", resultsHandler)
 	http.HandleFunc("/test-email", testEmailHandler)
 	http.HandleFunc("/test-ntfy", testNtfyHandler)

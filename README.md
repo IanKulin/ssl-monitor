@@ -218,10 +218,11 @@ GOOS=linux GOARCH=amd64 go build -o ssl-monitor-linux
 - Docker Compose setup with bind mounts
 
 🔲 **Polish**
-- Consistent navigation across all pages
+- Consistent navigation and look across all pages
 - Dark mode support from browser settings
+- Neater console logging with levels
 
-### Future Enhancements
+### Possible Future Enhancements
 
 🔲 **Enhanced Dashboard**
 - Search/filter functionality

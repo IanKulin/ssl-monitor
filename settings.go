@@ -18,7 +18,7 @@ type NtfySettings struct {
 }
 
 type EmailSettings struct {
-	EnabledWarning bool   `json:"enabled_warning"`
+	EnabledWarning  bool   `json:"enabled_warning"`
 	EnabledCritical bool   `json:"enabled_critical"`
 	Provider        string `json:"provider"`
 	ServerToken     string `json:"server_token"`
@@ -68,11 +68,42 @@ func saveSettings(settings Settings) error {
 
 func settingsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
-		err := saveSettingsFromForm(r)
+		// Load current settings to compare thresholds
+		oldSettings, err := loadSettings()
+		if err != nil {
+			http.Error(w, "Error loading current settings: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		err = saveSettingsFromForm(r)
 		if err != nil {
 			http.Error(w, "Error saving settings: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		// Load new settings to check if thresholds changed
+		newSettings, err := loadSettings()
+		if err != nil {
+			http.Error(w, "Error loading new settings: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Check if thresholds changed
+		thresholdsChanged := (oldSettings.Dashboard.ColorThresholds.Warning != newSettings.Dashboard.ColorThresholds.Warning) ||
+			(oldSettings.Dashboard.ColorThresholds.Critical != newSettings.Dashboard.ColorThresholds.Critical)
+
+		if thresholdsChanged {
+			// Trigger fast notification reprocessing (no certificate rechecking)
+			sites, err := loadSites()
+			if err != nil {
+				// Log error but don't fail the settings save
+				fmt.Printf("Warning: Could not load sites for notification reprocessing: %v\n", err)
+			} else {
+				fmt.Println("Thresholds changed - reprocessing notifications with existing certificate data...")
+				runScanWithNotificationsMode(sites, true) // true = notifications only
+			}
+		}
+
 		// Redirect to prevent re-submission on refresh
 		http.Redirect(w, r, "/settings?saved=true", http.StatusSeeOther)
 		return
