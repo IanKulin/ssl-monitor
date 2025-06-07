@@ -6,49 +6,93 @@ const resultsTemplate = `
 <head>
     <title>SSL Monitor - Certificate Status</title>
     <style>
+        :root {
+            --bg-color: #f5f5f5;
+            --text-color: #333;
+            --text-secondary: #666;
+            --card-bg: white;
+            --border-color: #dee2e6;
+            --header-bg: #f8f9fa;
+            --hover-bg: #f8f9fa;
+            --nav-bg: #007cba;
+            --nav-hover-bg: #005a8b;
+            --nav-active-border: #333;
+            --warning-bg: #fff3cd;
+            --warning-border: #ffeaa7;
+            --warning-text: #856404;
+            --btn-warning-bg: #ffc107;
+            --btn-warning-hover: #e0a800;
+            --btn-warning-text: #212529;
+            --shadow: rgba(0,0,0,0.1);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a1a;
+                --text-color: #e0e0e0;
+                --text-secondary: #b0b0b0;
+                --card-bg: #2d2d2d;
+                --border-color: #404040;
+                --header-bg: #3a3a3a;
+                --hover-bg: #3a3a3a;
+                --nav-bg: #0066a3;
+                --nav-hover-bg: #004d7a;
+                --nav-active-border: #e0e0e0;
+                --warning-bg: #3d3516;
+                --warning-border: #5a4b1a;
+                --warning-text: #d4c069;
+                --btn-warning-bg: #d4b806;
+                --btn-warning-hover: #b89f05;
+                --btn-warning-text: #1a1a1a;
+                --shadow: rgba(0,0,0,0.3);
+            }
+        }
+
         body { 
             font-family: Arial, sans-serif; 
             margin: 40px; 
-            background-color: #f5f5f5; 
+            background-color: var(--bg-color);
+            color: var(--text-color);
         }
         .header {
-            background: white;
+            background: var(--card-bg);
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px var(--shadow);
         }
         h1 { 
             margin: 0 0 10px 0; 
-            color: #333; 
+            color: var(--text-color);
         }
         .last-scan { 
-            color: #666; 
+            color: var(--text-secondary);
             font-size: 14px; 
         }
         .results-container {
-            background: white;
+            background: var(--card-bg);
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px var(--shadow);
         }
         table { 
             width: 100%; 
             border-collapse: collapse; 
         }
         th { 
-            background: #f8f9fa; 
+            background: var(--header-bg);
             padding: 15px; 
             text-align: left; 
             font-weight: 600;
-            border-bottom: 2px solid #dee2e6;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-color);
         }
         td { 
             padding: 15px; 
-            border-bottom: 1px solid #dee2e6; 
+            border-bottom: 1px solid var(--border-color);
         }
         tr:hover {
-            background-color: #f8f9fa;
+            background-color: var(--hover-bg);
         }
         .status-indicator {
             width: 12px;
@@ -63,10 +107,10 @@ const resultsTemplate = `
         .grey { background-color: #6c757d; }
         .site-name { 
             font-weight: 600; 
-            color: #333;
+            color: var(--text-color);
         }
         .url { 
-            color: #666; 
+            color: var(--text-secondary);
             font-size: 14px; 
         }
         .days-left {
@@ -79,18 +123,18 @@ const resultsTemplate = `
             font-size: 14px;
         }
         .expiry-date {
-            color: #666;
+            color: var(--text-secondary);
         }
         .no-results {
             text-align: center;
             padding: 40px;
-            color: #666;
+            color: var(--text-secondary);
         }
         .nav {
             margin-bottom: 20px;
         }
         .nav a {
-            background: #007cba;
+            background: var(--nav-bg);
             color: white;
             padding: 8px 16px;
             text-decoration: none;
@@ -98,29 +142,35 @@ const resultsTemplate = `
             margin-right: 10px;
         }
         .nav a:hover {
-            background: #005a8b;
+            background: var(--nav-hover-bg);
+        }
+        .nav a.active {
+            background: var(--nav-bg);
+            font-weight: 600;
+            border: 2px solid var(--nav-active-border);
+            cursor: default;
         }
         .stale-warning {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
+            background: var(--warning-bg);
+            border: 1px solid var(--warning-border);
             border-radius: 8px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px var(--shadow);
         }
         .stale-content {
             padding: 15px 20px;
         }
         .stale-content strong {
-            color: #856404;
+            color: var(--warning-text);
             font-size: 16px;
         }
         .stale-content p {
             margin: 8px 0 12px 0;
-            color: #856404;
+            color: var(--warning-text);
         }
         .btn-scan-now {
-            background: #ffc107;
-            color: #212529;
+            background: var(--btn-warning-bg);
+            color: var(--btn-warning-text);
             border: none;
             padding: 8px 16px;
             border-radius: 4px;
@@ -128,14 +178,7 @@ const resultsTemplate = `
             font-weight: 600;
         }
         .btn-scan-now:hover {
-            background: #e0a800;
-        }
-        .nav a.active {
-            background: #007cba;
-            font-weight: 600;
-            border: 2px solid #333;
-            cursor: default;
-            box-shadow: 0 0 0 1px rgba(255,255,255,0.5);
+            background: var(--btn-warning-hover);
         }
     </style>
 </head>

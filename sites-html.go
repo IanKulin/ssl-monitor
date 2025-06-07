@@ -6,31 +6,80 @@ const sitesTemplate = `
 <head>
     <title>SSL Monitor - Manage Sites</title>
     <style>
+        :root {
+            --bg-color: #f5f5f5;
+            --text-color: #333;
+            --text-secondary: #666;
+            --card-bg: white;
+            --border-color: #dee2e6;
+            --header-bg: #f8f9fa;
+            --hover-bg: #f8f9fa;
+            --nav-bg: #007cba;
+            --nav-hover-bg: #005a8b;
+            --nav-active-border: #333;
+            --input-bg: white;
+            --input-border: #ddd;
+            --btn-primary-bg: #28a745;
+            --btn-primary-hover: #218838;
+            --btn-secondary-bg: #6c757d;
+            --btn-secondary-hover: #545b62;
+            --btn-danger-bg: #dc3545;
+            --btn-danger-hover: #c82333;
+            --edit-row-bg: #fff3cd;
+            --shadow: rgba(0,0,0,0.1);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a1a;
+                --text-color: #e0e0e0;
+                --text-secondary: #b0b0b0;
+                --card-bg: #2d2d2d;
+                --border-color: #404040;
+                --header-bg: #3a3a3a;
+                --hover-bg: #3a3a3a;
+                --nav-bg: #0066a3;
+                --nav-hover-bg: #004d7a;
+                --nav-active-border: #e0e0e0;
+                --input-bg: #404040;
+                --input-border: #555;
+                --btn-primary-bg: #1e7e34;
+                --btn-primary-hover: #1c7430;
+                --btn-secondary-bg: #5a6268;
+                --btn-secondary-hover: #4e555b;
+                --btn-danger-bg: #bd2130;
+                --btn-danger-hover: #a71e2a;
+                --edit-row-bg: #3d3516;
+                --shadow: rgba(0,0,0,0.3);
+            }
+        }
+
         body { 
             font-family: Arial, sans-serif; 
             margin: 40px; 
-            background-color: #f5f5f5; 
+            background-color: var(--bg-color);
+            color: var(--text-color);
         }
         .header {
-            background: white;
+            background: var(--card-bg);
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px var(--shadow);
         }
         h1 { 
-            margin: 0 0 10px 0; 
-            color: #333; 
+            margin: 0; 
+            color: var(--text-color);
         }
         .subtitle { 
-            color: #666; 
+            color: var(--text-secondary);
             font-size: 14px; 
         }
         .nav {
             margin-bottom: 20px;
         }
         .nav a {
-            background: #007cba;
+            background: var(--nav-bg);
             color: white;
             padding: 8px 16px;
             text-decoration: none;
@@ -38,18 +87,24 @@ const sitesTemplate = `
             margin-right: 10px;
         }
         .nav a:hover {
-            background: #005a8b;
+            background: var(--nav-hover-bg);
+        }
+        .nav a.active {
+            background: var(--nav-bg);
+            font-weight: 600;
+            border: 2px solid var(--nav-active-border);
+            cursor: default;
         }
         .add-site-form {
-            background: white;
+            background: var(--card-bg);
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px var(--shadow);
         }
         .add-site-form h2 {
             margin-top: 0;
-            color: #333;
+            color: var(--text-color);
         }
         .form-row {
             display: flex;
@@ -64,14 +119,16 @@ const sitesTemplate = `
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
-            color: #333;
+            color: var(--text-color);
         }
         .form-group input {
             width: 100%;
             padding: 8px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--input-border);
             border-radius: 4px;
             font-size: 14px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
         }
         .btn {
             padding: 8px 16px;
@@ -83,65 +140,66 @@ const sitesTemplate = `
             display: inline-block;
         }
         .btn-primary {
-            background: #28a745;
+            background: var(--btn-primary-bg);
             color: white;
         }
         .btn-primary:hover {
-            background: #218838;
+            background: var(--btn-primary-hover);
         }
         .btn-secondary {
-            background: #6c757d;
+            background: var(--btn-secondary-bg);
             color: white;
             font-size: 12px;
             padding: 4px 8px;
         }
         .btn-secondary:hover {
-            background: #545b62;
+            background: var(--btn-secondary-hover);
         }
         .btn-danger {
-            background: #dc3545;
+            background: var(--btn-danger-bg);
             color: white;
             font-size: 12px;
             padding: 4px 8px;
         }
         .btn-danger:hover {
-            background: #c82333;
+            background: var(--btn-danger-hover);
         }
         .sites-list {
-            background: white;
+            background: var(--card-bg);
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px var(--shadow);
         }
         table {
             width: 100%;
             border-collapse: collapse;
         }
         th {
-            background: #f8f9fa;
+            background: var(--header-bg);
             padding: 15px;
             text-align: left;
             font-weight: 600;
-            border-bottom: 2px solid #dee2e6;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-color);
         }
         td {
             padding: 15px;
-            border-bottom: 1px solid #dee2e6;
+            border-bottom: 1px solid var(--border-color);
             vertical-align: middle;
         }
         tr:hover {
-            background-color: #f8f9fa;
+            background-color: var(--hover-bg);
         }
         .site-name {
             font-weight: 600;
-            color: #333;
+            color: var(--text-color);
         }
         .site-url {
-            color: #666;
+            color: var(--text-secondary);
             font-size: 14px;
         }
         .site-added {
-            color: #666;
+            color: var(--text-secondary);
             font-size: 14px;
         }
         .status-enabled {
@@ -149,7 +207,7 @@ const sitesTemplate = `
             font-weight: 600;
         }
         .status-disabled {
-            color: #6c757d;
+            color: var(--text-secondary);
             font-weight: 600;
         }
         .actions {
@@ -160,7 +218,7 @@ const sitesTemplate = `
             margin-right: 5px;
         }
         .edit-row {
-            background-color: #fff3cd !important;
+            background-color: var(--edit-row-bg) !important;
         }
         .edit-form {
             display: flex;
@@ -169,24 +227,19 @@ const sitesTemplate = `
         }
         .edit-form input {
             padding: 4px 8px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--input-border);
             border-radius: 4px;
             font-size: 14px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
         }
         .no-sites {
             text-align: center;
             padding: 40px;
-            color: #666;
+            color: var(--text-secondary);
         }
         .inline-form {
             display: inline;
-        }
-        .nav a.active {
-            background: #007cba;
-            font-weight: 600;
-            border: 2px solid #333;
-            cursor: default;
-            box-shadow: 0 0 0 1px rgba(255,255,255,0.5);
         }
     </style>
 </head>
@@ -277,38 +330,60 @@ const sitesTemplate = `
         {{end}}
     </div>
 
-   <script>
-        function testEmail() {
-            // Read current form values
-            const formData = {
-                server_token: document.querySelector('[name="email_server_token"]').value,
-                from: document.querySelector('[name="email_from"]').value,
-                to: document.querySelector('[name="email_to"]').value,
-                message_stream: document.querySelector('[name="email_message_stream"]').value
-            };
+    <script>
+        let editingIndex = -1;
+
+        function editSite(index) {
+            // Cancel any existing edit
+            cancelEdit();
             
-            fetch('/test-email', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(formData)
-            })
-            .then(response => response.text())
-            .then(data => alert(data));
+            editingIndex = index;
+            const row = document.getElementById('row-' + index);
+            const nameEl = document.getElementById('name-' + index);
+            const urlEl = document.getElementById('url-' + index);
+            
+            const currentName = nameEl.textContent;
+            const currentUrl = urlEl.textContent;
+            
+            row.classList.add('edit-row');
+            
+            row.cells[0].innerHTML = 
+                '<div class="edit-form">' +
+                '<input type="text" id="edit-name-' + index + '" value="' + currentName + '" placeholder="Site name">' +
+                '<input type="text" id="edit-url-' + index + '" value="' + currentUrl + '" placeholder="URL">' +
+                '</div>';
+            
+            row.cells[3].innerHTML = 
+                '<button type="button" class="btn btn-primary" onclick="saveEdit(' + index + ')">Save</button> ' +
+                '<button type="button" class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>';
         }
-        
-        function testNtfy() {
-            // Read current form values
-            const formData = {
-                url: document.querySelector('[name="ntfy_url"]').value
-            };
+
+        function saveEdit(index) {
+            const nameInput = document.getElementById('edit-name-' + index);
+            const urlInput = document.getElementById('edit-url-' + index);
             
-            fetch('/test-ntfy', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(formData)
-            })
-            .then(response => response.text())
-            .then(data => alert(data));
+            if (!nameInput.value.trim() || !urlInput.value.trim()) {
+                alert('Please fill in both name and URL');
+                return;
+            }
+            
+            // Create and submit form
+            const form = document.createElement('form');
+            form.method = 'post';
+            form.innerHTML = 
+                '<input type="hidden" name="action" value="edit">' +
+                '<input type="hidden" name="index" value="' + index + '">' +
+                '<input type="hidden" name="name" value="' + nameInput.value + '">' +
+                '<input type="hidden" name="url" value="' + urlInput.value + '">';
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function cancelEdit() {
+            if (editingIndex >= 0) {
+                location.reload(); // Simple way to restore original content
+            }
         }
     </script>
 </body>

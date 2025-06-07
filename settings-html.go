@@ -6,12 +6,78 @@ const settingsTemplate = `
 <head>
     <title>SSL Monitor - Settings</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
+        :root {
+            --bg-color: #f5f5f5;
+            --text-color: #333;
+            --text-secondary: #666;
+            --text-help: #666;
+            --card-bg: white;
+            --border-color: #dee2e6;
+            --header-bg: #f8f9fa;
+            --hover-bg: #f8f9fa;
+            --nav-bg: #007cba;
+            --nav-hover-bg: #005a8b;
+            --nav-active-border: #333;
+            --input-bg: white;
+            --input-border: #ddd;
+            --btn-test-bg: #007cba;
+            --btn-test-hover: #005a8b;
+            --btn-save-bg: #28a745;
+            --btn-save-hover: #218838;
+            --section-bg: white;
+            --shadow: rgba(0,0,0,0.1);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a1a;
+                --text-color: #e0e0e0;
+                --text-secondary: #b0b0b0;
+                --text-help: #999;
+                --card-bg: #2d2d2d;
+                --border-color: #404040;
+                --header-bg: #3a3a3a;
+                --hover-bg: #3a3a3a;
+                --nav-bg: #0066a3;
+                --nav-hover-bg: #004d7a;
+                --nav-active-border: #e0e0e0;
+                --input-bg: #404040;
+                --input-border: #555;
+                --btn-test-bg: #0066a3;
+                --btn-test-hover: #004d7a;
+                --btn-save-bg: #1e7e34;
+                --btn-save-hover: #1c7430;
+                --section-bg: #2d2d2d;
+                --shadow: rgba(0,0,0,0.3);
+            }
+        }
+
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 40px; 
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        .header {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px var(--shadow);
+        }
+        h1 { 
+            margin: 0 0 10px 0; 
+            color: var(--text-color);
+        }
+        .subtitle { 
+            color: var(--text-secondary);
+            font-size: 14px; 
+        }
         .nav {
             margin-bottom: 20px;
         }
         .nav a {
-            background: #007cba;
+            background: var(--nav-bg);
             color: white;
             padding: 8px 16px;
             text-decoration: none;
@@ -19,44 +85,72 @@ const settingsTemplate = `
             margin-right: 10px;
         }
         .nav a:hover {
-            background: #005a8b;
+            background: var(--nav-hover-bg);
         }
-        .header {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        h1 { 
-            margin: 0 0 10px 0; 
-            color: #333; 
-        }
-        .subtitle { 
-            color: #666; 
-            font-size: 14px; 
+        .nav a.active {
+            background: var(--nav-bg);
+            font-weight: 600;
+            border: 2px solid var(--nav-active-border);
+            cursor: default;
         }
         .section { 
             margin-bottom: 30px; 
             padding: 20px; 
-            background: white;
+            background: var(--section-bg);
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px var(--shadow);
         }
         .section h2 {
             margin-top: 0;
-            color: #333;
+            color: var(--text-color);
         }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
-        .checkbox-label { display: inline; font-weight: normal; margin-left: 5px; }
-        input, select { width: 300px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-        input[type="checkbox"] { width: auto; }
-        button { padding: 10px 15px; margin-right: 10px; border: none; border-radius: 4px; cursor: pointer; }
-        .test-btn { background-color: #007cba; color: white; }
-        .test-btn:hover { background-color: #005a8b; }
-        .save-btn { background-color: #28a745; color: white; }
-        .save-btn:hover { background-color: #218838; }
+        .form-group { 
+            margin-bottom: 15px; 
+        }
+        label { 
+            display: block; 
+            margin-bottom: 5px; 
+            font-weight: bold; 
+            color: var(--text-color);
+        }
+        .checkbox-label { 
+            display: inline; 
+            font-weight: normal; 
+            margin-left: 5px; 
+            color: var(--text-color);
+        }
+        input, select { 
+            width: 300px; 
+            padding: 8px; 
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+        }
+        input[type="checkbox"] { 
+            width: auto; 
+        }
+        button { 
+            padding: 10px 15px; 
+            margin-right: 10px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+        }
+        .test-btn { 
+            background-color: var(--btn-test-bg);
+            color: white; 
+        }
+        .test-btn:hover { 
+            background-color: var(--btn-test-hover);
+        }
+        .save-btn { 
+            background-color: var(--btn-save-bg);
+            color: white; 
+        }
+        .save-btn:hover { 
+            background-color: var(--btn-save-hover);
+        }
         .notification-toggles {
             display: flex;
             gap: 20px;
@@ -69,15 +163,8 @@ const settingsTemplate = `
         }
         .help-text {
             font-size: 12px;
-            color: #666;
+            color: var(--text-help);
             margin-top: 5px;
-        }
-        .nav a.active {
-            background: #007cba;
-            font-weight: 600;
-            border: 2px solid #333;
-            cursor: default;
-            box-shadow: 0 0 0 1px rgba(255,255,255,0.5);
         }
     </style>
 </head>
@@ -171,15 +258,36 @@ const settingsTemplate = `
 
     <script>
         function testEmail() {
-            fetch('/test-email', {method: 'POST'})
-                .then(response => response.text())
-                .then(data => alert(data));
+            // Read current form values
+            const formData = {
+                server_token: document.querySelector('[name="email_server_token"]').value,
+                from: document.querySelector('[name="email_from"]').value,
+                to: document.querySelector('[name="email_to"]').value,
+                message_stream: document.querySelector('[name="email_message_stream"]').value
+            };
+            
+            fetch('/test-email', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.text())
+            .then(data => alert(data));
         }
         
         function testNtfy() {
-            fetch('/test-ntfy', {method: 'POST'})
-                .then(response => response.text())
-                .then(data => alert(data));
+            // Read current form values
+            const formData = {
+                url: document.querySelector('[name="ntfy_url"]').value
+            };
+            
+            fetch('/test-ntfy', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.text())
+            .then(data => alert(data));
         }
     </script>
 </body>
