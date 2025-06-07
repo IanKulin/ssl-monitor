@@ -287,16 +287,18 @@ With thresholds `warning: 30, critical: 7`:
 
 
 ### Possible Future Enhancements
-
-🔲 **Enhanced Dashboard**
-- Search/filter functionality
+🔲 **Distribution**
+- docker hub
 
 🔲 **Operational Features**
-- Graceful shutdown handling
-- Better error logging and recovery
-- Metrics and observability
+- graceful shutdown handling
 - move API key to .env
 - versioning
+- do something to detect constant restarting and cancel notifications
+
+🔲 **Enhanced web interface**
+- search/filter sites functionality
+- notification history
 
 ## License
 
