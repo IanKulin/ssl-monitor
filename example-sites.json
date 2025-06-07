@@ -1,0 +1,65 @@
+{
+  "sites": [
+    {
+      "name": "Google",
+      "url": "google.com",
+      "enabled": true,
+      "added": "2025-06-06T10:00:00Z"
+    },
+    {
+      "name": "GitHub",
+      "url": "github.com",
+      "enabled": true,
+      "added": "2025-06-06T10:00:00Z"
+    },
+    {
+      "name": "Stack Overflow",
+      "url": "stackoverflow.com",
+      "enabled": true,
+      "added": "2025-06-06T10:00:00Z"
+    },
+    {
+      "name": "Cloudflare",
+      "url": "cloudflare.com",
+      "enabled": true,
+      "added": "2025-06-06T10:00:00Z"
+    },
+    {
+      "name": "Reddit",
+      "url": "reddit.com",
+      "enabled": true,
+      "added": "2025-06-06T10:00:00Z"
+    },
+    {
+      "name": "Wikipedia",
+      "url": "wikipedia.org",
+      "enabled": true,
+      "added": "2025-06-06T10:00:00Z"
+    },
+    {
+      "name": "Mozilla",
+      "url": "mozilla.org",
+      "enabled": true,
+      "added": "2025-06-06T10:00:00Z"
+    },
+    {
+      "name": "Docker Hub",
+      "url": "hub.docker.com",
+      "enabled": true,
+      "added": "2025-06-06T10:00:00Z"
+    },
+    {
+      "name": "DigitalOcean",
+      "url": "digitalocean.com",
+      "enabled": true,
+      "added": "2025-06-06T10:00:00Z"
+    },
+    {
+      "name": "Let's Encrypt",
+      "url": "letsencrypt.org",
+      "enabled": true,
+      "added": "2025-06-06T10:00:00Z"
+    }
+  ],
+  "last_modified": "2025-06-06T21:40:01.641923+08:00"
+}

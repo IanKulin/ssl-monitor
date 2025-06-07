@@ -1,0 +1,26 @@
+{
+  "scan_interval_hours": 24,
+  "notifications": {
+    "ntfy": {
+      "enabled_warning": false,
+      "enabled_critical": true,
+      "url": "https://ntfy.sh/example_ssl-monitor"
+    },
+    "email": {
+      "enabled_warning": true,
+      "enabled_critical": true,
+      "provider": "postmark",
+      "server_token": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "from": "person@example.com",
+      "to": "person@example.com",
+      "message_stream": "ssl-monitor"
+    }
+  },
+  "dashboard": {
+    "port": 8080,
+    "color_thresholds": {
+      "warning": 30,
+      "critical": 7
+    }
+  }
+}

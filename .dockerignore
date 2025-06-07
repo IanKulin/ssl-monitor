@@ -1,0 +1,26 @@
+# Ignore data directory - will be mounted as volume
+data/
+
+# Git files
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Docker files themselves
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Development files
+.vscode/
+.idea/
+
+# Binary files
+ssl-monitor
+ssl-monitor-*
+
+# Logs
+*.log

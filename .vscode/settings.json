@@ -1,13 +1,22 @@
 {
   "cSpell.words": [
+    "addgroup",
+    "adduser",
+    "appgroup",
+    "appuser",
     "cooldown",
     "GOARCH",
+    "healthcheck",
+    "iankulin",
+    "installsuffix",
+    "letsencrypt",
     "nowrap",
     "Ntfy",
     "onclick",
     "onsubmit",
     "rescan",
-    "stackoverflow"
+    "stackoverflow",
+    "tzdata"
   ],
   "[go]": {
     "editor.formatOnSave": true,
