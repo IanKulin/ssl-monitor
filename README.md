@@ -79,7 +79,7 @@ With thresholds set to warning: 30 days, critical: 7 days:
 
 ```
 ssl-monitor/
-├── src/                 # Source code
+├──                      # Source code
 │   ├── main.go              # Application entry point, HTTP routing, scheduling
 │   ├── settings.go          # Settings management 
 │   ├── settings-html.go     # HTML template for the settings view
@@ -90,11 +90,11 @@ ssl-monitor/
 │   ├── results-html.go      # HTML template for the results view
 │   ├── notifications.go     # Notification logic and status change detection
 │   └── notify-send.go       # Email and NTFY notification sending
-├── Dockerfile           # Container build configuration
-├── docker-compose.yml   # Docker Compose setup
-├── settings.example.json # Example configuration file
-└── data/                # Runtime data (created automatically)
-    ├── settings.json         # Application configuration
+├── Dockerfile               # Container build configuration
+├── docker-compose.yml       # Docker Compose setup
+├── settings.example.json    # Example configuration file
+└── data/                    # Runtime data (created automatically)
+    ├── settings.json        # Application configuration
     ├── sites.json           # List of websites to monitor
     ├── results.json         # Latest scan results
     └── notifications.json   # Notification history and state
@@ -103,13 +103,13 @@ ssl-monitor/
 ### File Organization Philosophy
 
 Each Go file contains domain-specific logic with separate template files:
-- `src/settings.go` + `src/settings-html.go`: Settings management and web interface
-- `src/sites.go` + `src/sites-html.go`: Site CRUD operations and management interface
-- `src/results.go` + `src/results-html.go`: Results display and dashboard interface
-- `src/scans.go`: SSL certificate scanning logic
-- `src/notifications.go`: Status change detection and notification orchestration
-- `src/notify-send.go`: Service-specific notification delivery
-- `src/main.go`: Application orchestration and HTTP routing
+- `settings.go` + `settings-html.go`: Settings management and web interface
+- `sites.go` + `sites-html.go`: Site CRUD operations and management interface
+- `results.go` + `results-html.go`: Results display and dashboard interface
+- `scans.go`: SSL certificate scanning logic
+- `notifications.go`: Status change detection and notification orchestration
+- `notify-send.go`: Service-specific notification delivery
+- `main.go`: Application orchestration and HTTP routing
 
 ### Local Development
 
@@ -117,10 +117,10 @@ Each Go file contains domain-specific logic with separate template files:
 # Prerequisites: Go 1.21+ installed
 
 # Run directly
-go run src/*.go
+go run *.go
 
 # Or build and run
-go build -o ssl-monitor src/*.go
+go build -o ssl-monitor *.go
 ./ssl-monitor
 
 # Access web interface
