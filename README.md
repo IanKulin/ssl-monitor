@@ -285,28 +285,18 @@ With thresholds `warning: 30, critical: 7`:
 - every web page should have buttons for "Results", "Sites", "Settings"
 - '/' route should redirect to /results
 
-🔲 **Polish**
-- Consistent navigation and look across all pages
-- Dark mode support from browser settings
-- Neater console logging with levels
 
 ### Possible Future Enhancements
 
 🔲 **Enhanced Dashboard**
 - Search/filter functionality
-- Detailed view for individual certificates
-- Historical data (certificate renewal tracking)
-
-🔲 **Extended Notifications**
-- Template-based notification messages
-- Multiple email recipients
-- Webhook support for additional services (Slack, Discord, etc.)
 
 🔲 **Operational Features**
 - Graceful shutdown handling
 - Better error logging and recovery
 - Metrics and observability
-- Status API endpoint for monitoring integration
+- move API key to .env
+- versioning
 
 ## License
 

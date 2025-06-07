@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"time"
 )
@@ -26,6 +25,7 @@ func loadNotificationState() (NotificationState, error) {
 	if err != nil {
 		// File doesn't exist yet, return empty state
 		if os.IsNotExist(err) {
+			LogInfo("Notification state file doesn't exist, creating empty state")
 			return state, nil
 		}
 		return state, err
@@ -79,9 +79,8 @@ func shouldSendNtfyForStatus(status string, settings Settings) bool {
 }
 
 func processNotifications(results ScanResults, settings Settings) error {
-	log.Printf("Processing notifications for %d scan results", len(results.Results))
+	LogInfo("Processing notifications for %d scan results", len(results.Results))
 	
-	// Load notification state
 	state, err := loadNotificationState()
 	if err != nil {
 		return fmt.Errorf("error loading notification state: %w", err)
@@ -90,15 +89,13 @@ func processNotifications(results ScanResults, settings Settings) error {
 	notificationsSent := 0
 
 	for _, result := range results.Results {
-		// Skip sites with errors
 		if result.Error != "" {
-			log.Printf("Skipping %s due to scan error: %s", result.URL, result.Error)
+			LogWarning("Skipping %s due to scan error: %s", result.URL, result.Error)
 			continue
 		}
 
-		// Determine current status using dashboard thresholds
 		currentStatus := determineCurrentStatus(result.DaysLeft, settings)
-		log.Printf("Site %s (%d days left) current status: %s", result.URL, result.DaysLeft, currentStatus)
+		LogDebug("Site %s (%d days left) current status: %s", result.URL, result.DaysLeft, currentStatus)
 
 		// Get previous status from history
 		history, exists := state.NotificationHistory[result.URL]
@@ -107,39 +104,37 @@ func processNotifications(results ScanResults, settings Settings) error {
 			previousStatus = history.LastStatus
 		}
 
-		log.Printf("Site %s status change: %s -> %s", result.URL, previousStatus, currentStatus)
+		LogDebug("Site %s status change: %s -> %s", result.URL, previousStatus, currentStatus)
 
 		// Only send notifications if status changed and new status needs notifications
 		if currentStatus != previousStatus && (currentStatus == "warning" || currentStatus == "critical") {
-			log.Printf("Status changed to %s for %s, checking enabled services", currentStatus, result.URL)
+			LogInfo("Status changed to %s for %s, checking enabled services", currentStatus, result.URL)
 
-			// Send email if enabled for this status
 			if shouldSendEmailForStatus(currentStatus, settings) {
-				log.Printf("Sending email notification for %s (status: %s)", result.URL, currentStatus)
+				LogInfo("Sending email notification for %s (status: %s)", result.URL, currentStatus)
 				err := sendEmailNotification(result, currentStatus, settings)
 				if err != nil {
-					log.Printf("Error sending email notification for %s: %v", result.URL, err)
+					LogError("Error sending email notification for %s: %v", result.URL, err)
 				} else {
 					notificationsSent++
-					log.Printf("Successfully sent email notification for %s", result.URL)
+					LogInfo("Successfully sent email notification for %s", result.URL)
 				}
 			}
 
-			// Send NTFY if enabled for this status
 			if shouldSendNtfyForStatus(currentStatus, settings) {
-				log.Printf("Sending NTFY notification for %s (status: %s)", result.URL, currentStatus)
+				LogInfo("Sending NTFY notification for %s (status: %s)", result.URL, currentStatus)
 				err := sendNtfyNotification(result, currentStatus, settings)
 				if err != nil {
-					log.Printf("Error sending NTFY notification for %s: %v", result.URL, err)
+					LogError("Error sending NTFY notification for %s: %v", result.URL, err)
 				} else {
 					notificationsSent++
-					log.Printf("Successfully sent NTFY notification for %s", result.URL)
+					LogInfo("Successfully sent NTFY notification for %s", result.URL)
 				}
 			}
 		} else if currentStatus == previousStatus {
-			log.Printf("No status change for %s, skipping notifications", result.URL)
+			LogDebug("No status change for %s, skipping notifications", result.URL)
 		} else {
-			log.Printf("Status changed to %s for %s, but no notifications needed", result.URL, currentStatus)
+			LogDebug("Status changed to %s for %s, but no notifications needed", result.URL, currentStatus)
 		}
 
 		// Update history with current status
@@ -158,6 +153,6 @@ func processNotifications(results ScanResults, settings Settings) error {
 		return fmt.Errorf("error saving notification state: %w", err)
 	}
 
-	log.Printf("Notification processing complete. Sent %d notifications", notificationsSent)
+	LogInfo("Notification processing complete. Sent %d notifications", notificationsSent)
 	return nil
 }

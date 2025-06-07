@@ -9,6 +9,7 @@ services:
       - ./data:/app/data
     environment:
       - TZ=Australia/Perth
+      - LOG_LEVEL=WARNING
     restart: unless-stopped
     healthcheck:
       test:

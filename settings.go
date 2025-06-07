@@ -58,6 +58,8 @@ type TestNtfyData struct {
 }
 
 func initializeDefaultSettings() error {
+	LogInfo("Creating default settings file")
+	
 	defaultSettings := Settings{
 		ScanIntervalHours: 24,
 		Notifications: NotificationSettings{
@@ -91,7 +93,6 @@ func initializeDefaultSettings() error {
 	return saveSettings(defaultSettings)
 }
 
-// Update the loadSettings function
 func loadSettings() (Settings, error) {
 	var settings Settings
 
@@ -99,7 +100,7 @@ func loadSettings() (Settings, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// File doesn't exist, create default settings
-			fmt.Println("Settings file not found, creating default settings...")
+			LogInfo("Settings file not found, creating default settings")
 			err = initializeDefaultSettings()
 			if err != nil {
 				return settings, fmt.Errorf("failed to create default settings: %w", err)
@@ -115,28 +116,49 @@ func loadSettings() (Settings, error) {
 	}
 
 	err = json.Unmarshal(data, &settings)
+	if err != nil {
+		LogError("Error parsing settings file: %v", err)
+		return settings, err
+	}
+
+	LogDebug("Settings loaded successfully")
 	return settings, err
 }
 
 func saveSettings(settings Settings) error {
+	LogDebug("Saving settings to data/settings.json")
+	
 	data, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
+		LogError("Error marshaling settings: %v", err)
 		return err
 	}
-	return os.WriteFile("data/settings.json", data, 0644)
+	
+	err = os.WriteFile("data/settings.json", data, 0644)
+	if err != nil {
+		LogError("Error writing settings file: %v", err)
+		return err
+	}
+
+	LogDebug("Settings saved successfully")
+	return nil
 }
 
 func settingsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
+		LogDebug("Processing settings form submission")
+		
 		// Load current settings to compare thresholds
 		oldSettings, err := loadSettings()
 		if err != nil {
+			LogError("Error loading current settings: %v", err)
 			http.Error(w, "Error loading current settings: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		err = saveSettingsFromForm(r)
 		if err != nil {
+			LogError("Error saving settings from form: %v", err)
 			http.Error(w, "Error saving settings: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -144,6 +166,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 		// Load new settings to check if thresholds changed
 		newSettings, err := loadSettings()
 		if err != nil {
+			LogError("Error loading new settings: %v", err)
 			http.Error(w, "Error loading new settings: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -153,17 +176,21 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 			(oldSettings.Dashboard.ColorThresholds.Critical != newSettings.Dashboard.ColorThresholds.Critical)
 
 		if thresholdsChanged {
+			LogInfo("Thresholds changed (warning: %d->%d, critical: %d->%d), reprocessing notifications", 
+				oldSettings.Dashboard.ColorThresholds.Warning, newSettings.Dashboard.ColorThresholds.Warning,
+				oldSettings.Dashboard.ColorThresholds.Critical, newSettings.Dashboard.ColorThresholds.Critical)
+			
 			// Trigger fast notification reprocessing (no certificate rechecking)
 			sites, err := loadSites()
 			if err != nil {
 				// Log error but don't fail the settings save
-				fmt.Printf("Warning: Could not load sites for notification reprocessing: %v\n", err)
+				LogWarning("Could not load sites for notification reprocessing: %v", err)
 			} else {
-				fmt.Println("Thresholds changed - reprocessing notifications with existing certificate data...")
 				runScanWithNotificationsMode(sites, true) // true = notifications only
 			}
 		}
 
+		LogInfo("Settings saved successfully")
 		// Redirect to prevent re-submission on refresh
 		http.Redirect(w, r, "/settings?saved=true", http.StatusSeeOther)
 		return
@@ -171,6 +198,7 @@ func settingsHandler(w http.ResponseWriter, r *http.Request) {
 
 	settings, err := loadSettings()
 	if err != nil {
+		LogError("Error loading settings for display: %v", err)
 		http.Error(w, "Error loading settings", http.StatusInternalServerError)
 		return
 	}
@@ -194,6 +222,7 @@ func saveSettingsFromForm(r *http.Request) error {
 	// Update settings from form values
 	if val := r.FormValue("scan_interval_hours"); val != "" {
 		if hours := parseInt(val); hours > 0 {
+			LogDebug("Updating scan interval to %d hours", hours)
 			settings.ScanIntervalHours = hours
 		}
 	}
@@ -201,11 +230,13 @@ func saveSettingsFromForm(r *http.Request) error {
 	// Dashboard settings
 	if val := r.FormValue("dashboard_warning"); val != "" {
 		if days := parseInt(val); days > 0 {
+			LogDebug("Updating warning threshold to %d days", days)
 			settings.Dashboard.ColorThresholds.Warning = days
 		}
 	}
 	if val := r.FormValue("dashboard_critical"); val != "" {
 		if days := parseInt(val); days > 0 {
+			LogDebug("Updating critical threshold to %d days", days)
 			settings.Dashboard.ColorThresholds.Critical = days
 		}
 	}
@@ -223,17 +254,24 @@ func saveSettingsFromForm(r *http.Request) error {
 	settings.Notifications.Ntfy.EnabledCritical = r.FormValue("ntfy_enabled_critical") == "on"
 	settings.Notifications.Ntfy.URL = r.FormValue("ntfy_url")
 
+	LogDebug("Updated email notifications: warning=%v, critical=%v", 
+		settings.Notifications.Email.EnabledWarning, settings.Notifications.Email.EnabledCritical)
+	LogDebug("Updated NTFY notifications: warning=%v, critical=%v", 
+		settings.Notifications.Ntfy.EnabledWarning, settings.Notifications.Ntfy.EnabledCritical)
+
 	return saveSettings(settings)
 }
 
 func testEmailHandler(w http.ResponseWriter, r *http.Request) {
 	var emailSettings EmailSettings
 
-	// Try to parse JSON from request body (new approach)
+	// Try to parse JSON from request body
 	if r.Header.Get("Content-Type") == "application/json" {
+		LogDebug("Testing email with form values")
 		var testData TestEmailData
 		err := json.NewDecoder(r.Body).Decode(&testData)
 		if err != nil {
+			LogError("Error parsing email test data: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(w, "Error parsing test data")
 			return
@@ -247,9 +285,10 @@ func testEmailHandler(w http.ResponseWriter, r *http.Request) {
 			MessageStream: testData.MessageStream,
 		}
 	} else {
-		// Fallback to existing settings (old approach)
+		LogDebug("Testing email with saved settings")
 		settings, err := loadSettings()
 		if err != nil {
+			LogError("Error loading settings for email test: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, "Error loading settings")
 			return
@@ -259,11 +298,13 @@ func testEmailHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Validate required fields
 	if emailSettings.ServerToken == "" || emailSettings.From == "" || emailSettings.To == "" {
+		LogWarning("Email test failed: incomplete settings")
 		fmt.Fprint(w, "Email settings incomplete (missing server token, from, or to address)")
 		return
 	}
 
-	// Rest of the function remains the same, but use emailSettings instead of settings.Notifications.Email
+	LogInfo("Sending test email from %s to %s", emailSettings.From, emailSettings.To)
+
 	emailData := map[string]string{
 		"From":          emailSettings.From,
 		"To":            emailSettings.To,
@@ -274,6 +315,7 @@ func testEmailHandler(w http.ResponseWriter, r *http.Request) {
 
 	jsonData, err := json.Marshal(emailData)
 	if err != nil {
+		LogError("Error preparing email JSON: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Error preparing email: %s", err.Error())
 		return
@@ -281,6 +323,7 @@ func testEmailHandler(w http.ResponseWriter, r *http.Request) {
 
 	req, err := http.NewRequest("POST", "https://api.postmarkapp.com/email", bytes.NewBuffer(jsonData))
 	if err != nil {
+		LogError("Error creating email request: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Error creating request: %s", err.Error())
 		return
@@ -293,6 +336,7 @@ func testEmailHandler(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		LogError("Error sending test email: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Error sending email: %s", err.Error())
 		return
@@ -300,8 +344,10 @@ func testEmailHandler(w http.ResponseWriter, r *http.Request) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 200 {
+		LogInfo("Test email sent successfully")
 		fmt.Fprint(w, "Test email sent successfully!")
 	} else {
+		LogWarning("Postmark returned status code %d for test email", resp.StatusCode)
 		fmt.Fprintf(w, "Postmark returned status code: %d", resp.StatusCode)
 	}
 }
@@ -311,18 +357,22 @@ func testNtfyHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Try to parse JSON from request body (new approach)
 	if r.Header.Get("Content-Type") == "application/json" {
+		LogDebug("Testing NTFY with form values")
 		var testData TestNtfyData
 		err := json.NewDecoder(r.Body).Decode(&testData)
 		if err != nil {
+			LogError("Error parsing NTFY test data: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(w, "Error parsing test data")
 			return
 		}
 		ntfyURL = testData.URL
 	} else {
+		LogDebug("Testing NTFY with saved settings")
 		// Fallback to existing settings (old approach)
 		settings, err := loadSettings()
 		if err != nil {
+			LogError("Error loading settings for NTFY test: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, "Error loading settings")
 			return
@@ -331,14 +381,18 @@ func testNtfyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if ntfyURL == "" {
+		LogWarning("NTFY test failed: no URL configured")
 		fmt.Fprint(w, "NTFY URL not configured")
 		return
 	}
+
+	LogInfo("Sending test NTFY notification to %s", ntfyURL)
 
 	// Rest remains the same, but use ntfyURL variable
 	message := "SSL Monitor test notification - if you see this, NTFY is working correctly!"
 	req, err := http.NewRequest("POST", ntfyURL, strings.NewReader(message))
 	if err != nil {
+		LogError("Error creating NTFY request: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Error creating request: %s", err.Error())
 		return
@@ -351,6 +405,7 @@ func testNtfyHandler(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		LogError("Error sending test NTFY: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Error sending notification: %s", err.Error())
 		return
@@ -358,8 +413,10 @@ func testNtfyHandler(w http.ResponseWriter, r *http.Request) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 200 {
+		LogInfo("Test NTFY notification sent successfully")
 		fmt.Fprint(w, "NTFY test notification sent successfully!")
 	} else {
+		LogWarning("NTFY returned status code %d for test notification", resp.StatusCode)
 		fmt.Fprintf(w, "NTFY returned status code: %d", resp.StatusCode)
 	}
 }

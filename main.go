@@ -2,13 +2,10 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
 )
-
-// Add this to main.go
 
 func runScanWithNotifications(sites []Site) {
 	runScanWithNotificationsMode(sites, false) // false = full scan
@@ -18,12 +15,11 @@ func runScanWithNotificationsMode(sites []Site, notificationsOnly bool) {
 	var results ScanResults
 
 	if notificationsOnly {
-		// Load existing results and only process notifications
-		fmt.Printf("\n[%s] Processing notifications with existing certificate data...\n", time.Now().Format("2006-01-02 15:04:05"))
+		LogInfo("Processing notifications with existing certificate data")
 
 		existingResults, err := loadResults()
 		if err != nil {
-			log.Printf("Error loading existing results for notification processing: %v", err)
+			LogError("Error loading existing results for notification processing: %v", err)
 			return
 		}
 
@@ -31,28 +27,28 @@ func runScanWithNotificationsMode(sites []Site, notificationsOnly bool) {
 		results = existingResults
 		results.LastScan = time.Now()
 
-		fmt.Printf("Processing notifications for %d existing certificate results.\n", len(results.Results))
+		LogInfo("Processing notifications for %d existing certificate results", len(results.Results))
 	} else {
 		// Full scan with certificate checking
-		fmt.Printf("\n[%s] Starting full certificate scan...\n", time.Now().Format("2006-01-02 15:04:05"))
+		LogDebug("Starting full certificate scan")
 		results = scanAllSites(sites)
 
 		err := saveResults(results)
 		if err != nil {
-			log.Printf("Error saving scan results: %v", err)
+			LogError("Error saving scan results: %v", err)
 		} else {
-			fmt.Printf("Scan complete. Checked %d sites.\n", len(results.Results))
+			LogInfo("Scan complete. Checked %d sites", len(results.Results))
 		}
 	}
 
 	// Process notifications after scan (or using existing data)
 	settings, err := loadSettings()
 	if err != nil {
-		log.Printf("Error loading settings for notifications: %v", err)
+		LogError("Error loading settings for notifications: %v", err)
 	} else {
 		err = processNotifications(results, settings)
 		if err != nil {
-			log.Printf("Error processing notifications: %v", err)
+			LogError("Error processing notifications: %v", err)
 		}
 	}
 }
@@ -62,31 +58,33 @@ func runScheduledScans(sites []Site, interval time.Duration) {
 	defer ticker.Stop()
 
 	for range ticker.C {
+		LogDebug("Starting scheduled scan")
 		runScanWithNotifications(sites)
 	}
 }
 
 func main() {
+	initLogging()
+
 	// Create data directory if it doesn't exist
 	os.MkdirAll("data", 0755)
 
-	// Load settings
 	settings, err := loadSettings()
 	if err != nil {
-		log.Fatal("Error loading settings:", err)
+		LogError("Error loading settings: %v", err)
+		os.Exit(1)
 	}
 
-	// Load sites
 	sites, err := loadSites()
 	if err != nil {
-		log.Fatal("Error loading sites:", err)
+		LogError("Error loading sites: %v", err)
+		os.Exit(1)
 	}
 
-	fmt.Printf("Loaded %d sites\n", len(sites))
-	fmt.Printf("Scan interval: %d hours\n", settings.ScanIntervalHours)
+	LogInfo("Loaded %d sites", len(sites))
+	LogInfo("Scan interval: %d hours", settings.ScanIntervalHours)
 
-	// Do initial scan with notifications
-	fmt.Println("Starting initial scan...")
+	LogDebug("Starting initial scan")
 	runScanWithNotifications(sites)
 
 	// Start scheduled scanning with configurable interval
@@ -104,7 +102,11 @@ func main() {
 	http.HandleFunc("/test-ntfy", testNtfyHandler)
 
 	port := fmt.Sprintf(":%d", settings.Dashboard.Port)
-	fmt.Printf("Starting web server on %s\n", port)
-	fmt.Printf("Scheduled scans will run every %d hours\n", settings.ScanIntervalHours)
-	log.Fatal(http.ListenAndServe(port, nil))
+	LogInfo("Starting web server on %s", port)
+	
+	err = http.ListenAndServe(port, nil)
+	if err != nil {
+		LogError("Web server failed: %v", err)
+		os.Exit(1)
+	}
 }
