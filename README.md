@@ -1,55 +1,102 @@
 # SSL Certificate Monitor
 
-A lightweight Go application that monitors SSL certificate expiry dates and sends notifications when certificates are approaching expiration.
+A lightweight application that monitors SSL certificate expiry dates and sends notifications when certificates are approaching expiration.
 
-## Purpose
+## What It Does
 
 This tool helps prevent unexpected SSL certificate expirations by:
-- Regularly scanning a list of websites for certificate expiry dates
-- Providing a web dashboard to view certificate status
-- Sending notifications via email (Postmark) and push notifications (NTFY)
-- Using unified thresholds for both dashboard colors and notifications
+- **Automatically scanning**  websites for certificate expiry dates
+- **Visual dashboard** to see all certificate status at a glance
+- **Notifications** via email (Postmark) and push notifications (NTFY)
+- **Relevant alerts** - only notifies when certificate status actually changes
 
-## Architecture
+## Quick Start
 
-The application is built as a single Go binary with embedded web interface, designed for deployment as a Docker container.
+```bash
+# Clone or download the project
+git clone <your-repo-url>
+cd ssl-monitor
 
-### Core Components
+# Build and run with Docker Compose
+docker-compose up -d --build
 
-- **SSL Scanner**: Connects to websites via TLS to extract certificate expiry information
-- **Scheduler**: Runs scans at configurable intervals (default: 24 hours)
-- **Web Interface**: Settings management and dashboard
-- **Notification System**: Email (Postmark API) and push notifications (NTFY)
-- **JSON Storage**: File-based storage for configuration and results
+# Access the web interface
+open http://localhost:8080/results
+```
 
-### Data Flow
+The container includes default settings and is ready to use immediately. Configuration persists in the `./data` directory.
 
-1. Application loads sites list and settings from JSON files
-2. Scanner checks each enabled site's SSL certificate
-3. Results are saved with expiry dates and days remaining
-4. Scheduler repeats scans at configured intervals
-5. Notifications are sent when certificate status changes to warning/critical
-6. Web interface provides management and monitoring
+## Using the Application
+
+### 1. Add Your Websites
+Visit `http://localhost:8080/sites` to add websites you want to monitor. Just enter the domain name (e.g., `google.com`) - no need for `https://`.
+
+### 2. Configure Notifications
+Visit `http://localhost:8080/settings` to:
+- Set warning/critical thresholds (e.g., warn at 30 days, critical at 7 days)
+- Configure email notifications (requires Postmark account)
+- Set up push notifications (via NTFY)
+- Test your notification settings
+
+### 3. Monitor Your Certificates
+The dashboard at `http://localhost:8080/results` shows:
+- 🟢 **Green**: Certificate is healthy (plenty of time left)
+- 🟡 **Yellow**: Certificate needs attention (approaching expiration)
+- 🔴 **Red**: Certificate expires very soon (action required immediately)
+
+## How Notifications Work
+
+1. **Unified Thresholds**: Set warning (e.g., 30 days) and critical (e.g., 7 days) thresholds
+2. **Status Change Detection**: Only sends notifications when a certificate's status actually changes
+3. **Per-Service Control**: Choose which services get warning vs critical alerts
+4. **No Spam**: Sites at the same status don't generate repeat notifications
+5. **Instant Updates**: Changing thresholds immediately updates all statuses
+
+### Example Behavior
+With thresholds set to warning: 30 days, critical: 7 days:
+
+- **Site at 45 days**: 🟢 Green "Good" - no notifications
+- **Site drops to 25 days**: 🟡 Yellow "Warning" - sends notification once
+- **Site stays at 25 days**: No additional notifications
+- **Site drops to 5 days**: 🔴 Red "Critical" - sends urgent notification
+- **Certificate renewed to 90 days**: 🟢 Green "Good" - no notifications
+
+## Notification Services
+
+**Email (Postmark)**
+- Requires a Postmark account and server token
+- Sends HTML-formatted emails with certificate details
+- Configure in Settings → Email Notifications
+
+**Push Notifications (NTFY)**
+- Free service for instant mobile/desktop notifications
+- Visit [ntfy.sh](https://ntfy.sh) to create a topic
+- Configure in Settings → NTFY Notifications
+
+---
 
 ## Project Structure
 
 ```
 ssl-monitor/
-├── main.go           # Application entry point, HTTP routing, scheduling
-├── settings.go       # Settings management 
-├── settings-html.go  # HTML template for the settings view
-├── sites.go          # Site management (CRUD operations)
-├── sites-html.go     # HTML template for the sites management view
-├── scans.go          # SSL certificate scanning logic
-├── results.go        # Results display logic
-├── results-html.go   # HTML template for the results view
-├── notifications.go  # Notification logic and status change detection
-├── notify-send.go    # Email and NTFY notification sending
-└── data/
-    ├── settings.json      # Application configuration
-    ├── sites.json         # List of websites to monitor
-    ├── results.json       # Latest scan results
-    └── notifications.json # Notification history and state
+├── main.go              # Application entry point, HTTP routing, scheduling
+├── settings.go          # Settings management 
+├── settings-html.go     # HTML template for the settings view
+├── sites.go             # Site management (CRUD operations)
+├── sites-html.go        # HTML template for the sites management view
+├── scans.go             # SSL certificate scanning logic
+├── results.go           # Results display logic
+├── results-html.go      # HTML template for the results view
+├── notifications.go     # Notification logic and status change detection
+├── notify-send.go       # Email and NTFY notification sending
+├── Dockerfile           # Container build configuration
+├── docker-compose.yml   # Docker Compose setup
+├── settings.example.json # Example configuration file
+└── data/                # Runtime data (created automatically)
+    ├── settings.json         # Application configuration
+    ├── sites.json           # List of websites to monitor
+    ├── results.json         # Latest scan results
+    └── notifications.json   # Notification history and state
 ```
 
 ### File Organization Philosophy
@@ -62,6 +109,35 @@ Each Go file contains domain-specific logic with separate template files:
 - `notifications.go`: Status change detection and notification orchestration
 - `notify-send.go`: Service-specific notification delivery
 - `main.go`: Application orchestration and HTTP routing
+
+### Local Development
+
+```bash
+# Prerequisites: Go 1.21+ installed
+
+# Run directly
+go run *.go
+
+# Or build and run
+go build -o ssl-monitor
+./ssl-monitor
+
+# Access web interface
+open http://localhost:8080/results
+```
+
+### Container Development
+
+```bash
+# Build and run with Docker Compose
+docker-compose up -d --build
+
+# View logs
+docker-compose logs -f ssl-monitor
+
+# Rebuild after code changes
+docker-compose up -d --build
+```
 
 ## Current Status
 
@@ -83,6 +159,7 @@ Each Go file contains domain-specific logic with separate template files:
 - Unified thresholds for dashboard and notifications
 - Per-service notification toggles (warning/critical)
 - Test buttons for notifications
+- Instant notification status updates when thresholds change
 
 **Sites Management**
 - Web interface for adding/editing/deleting sites
@@ -103,6 +180,13 @@ Each Go file contains domain-specific logic with separate template files:
 - Uses same thresholds as dashboard for consistency
 - Notification history tracking to prevent duplicates
 - Postmark email and NTFY push notification support
+- Immediate reprocessing when thresholds change (no certificate re-checking required)
+
+**Containerization**
+- Multi-stage Docker build for minimal image size
+- Docker Compose setup with volume persistence
+- Built-in default configuration
+- Health monitoring and restart policies
 
 **JSON Data Storage**
 - Sites list management with modification tracking
@@ -110,7 +194,11 @@ Each Go file contains domain-specific logic with separate template files:
 - Scan results storage
 - Simple notification state tracking
 
-## Configuration
+ **Deployment** 
+- Dockerfile for containerization
+- Docker Compose setup with bind mounts
+
+## Configuration Files
 
 ### Settings File (`data/settings.json`)
 
@@ -163,10 +251,11 @@ Each Go file contains domain-specific logic with separate template files:
 
 The notification system uses a simple, predictable approach:
 
-1. **Unified Thresholds**: Dashboard color thresholds control both UI display and notification triggers
-2. **Status Change Detection**: Notifications only sent when a site's status changes (normal → warning → critical)
-3. **Per-Service Control**: Each notification service can be enabled/disabled for warning and critical levels independently
-4. **No Spam**: Sites at the same status level don't generate repeat notifications
+1. Dashboard color thresholds control both UI display and notification triggers
+2. Notifications only sent when a site's status changes (normal → warning → critical)
+3. Each notification service can be enabled/disabled for warning and critical levels independently
+4. Sites at the same status level don't generate repeat notifications
+5.  Changing threshold settings immediately updates notification status without re-scanning certificates
 
 ### Example Behavior
 
@@ -177,45 +266,19 @@ With thresholds `warning: 30, critical: 7`:
 - **Site stays at 25 days**: No additional notifications (no status change)
 - **Site drops to 5 days**: Red "Critical", sends to services with `enabled_critical: true`
 - **Certificate renewed to 90 days**: Green "Good", no notifications (but history updated)
+- **Threshold changed from 30→40**: Immediate notification if site status changes from normal to warning
 
-## Development
+## Web Interface
 
-### Prerequisites
-
-- Go 1.19+ installed
-- No external dependencies (uses Go standard library)
-
-### Running Locally
-
-```bash
-# Run all Go files together
-go run *.go
-
-# Or build and run
-go build -o ssl-monitor
-./ssl-monitor
-```
-
-### Cross-compilation for Docker
-
-```bash
-GOOS=linux GOARCH=amd64 go build -o ssl-monitor-linux
-```
-
-### Web Interface
-
-- Dashboard/Results: `http://localhost:8080/results`
-- Sites Management: `http://localhost:8080/sites`
-- Settings: `http://localhost:8080/settings`
-- Test endpoints: `/test-email`, `/test-ntfy`
+- **Dashboard/Results**: `/results` - View certificate status and scan results
+- **Sites Management**: `/sites` - Add, edit, enable/disable sites
+- **Settings**: `/settings` - Configure thresholds, notifications, and intervals
+- **Test Endpoints**: `/test-email`, `/test-ntfy` - Verify notification configuration
+- **Status**: `/status`- text status for external monitoring `okay`/`warning`/`critical`
 
 ## Roadmap
 
 ### Immediate Priorities
-
-🔲 **Deployment**
-- Dockerfile for containerization
-- Docker Compose setup with bind mounts
 
 🔲 **Polish**
 - Consistent navigation and look across all pages
@@ -235,7 +298,11 @@ GOOS=linux GOARCH=amd64 go build -o ssl-monitor-linux
 - Webhook support for additional services (Slack, Discord, etc.)
 
 🔲 **Operational Features**
-- Health check endpoint for monitoring
 - Graceful shutdown handling
 - Better error logging and recovery
 - Metrics and observability
+- Status API endpoint for monitoring integration
+
+## License
+
+[GPL3](https://www.gnu.org/licenses/gpl-3.0.en.html)
