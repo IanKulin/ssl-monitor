@@ -239,9 +239,9 @@ const resultsTemplate = `
                             <span class="status-indicator {{.ColorClass}}"></span>
                             {{if .HasError}}
                                 <span class="error-message">Error</span>
-                            {{else if le .DaysLeft $.Settings.Dashboard.ColorThresholds.Critical}}
+                            {{else if lt .DaysLeft $.Settings.Dashboard.ColorThresholds.Critical}}
                                 Critical
-                            {{else if le .DaysLeft $.Settings.Dashboard.ColorThresholds.Warning}}
+                            {{else if lt .DaysLeft $.Settings.Dashboard.ColorThresholds.Warning}}
                                 Warning  
                             {{else}}
                                 Good

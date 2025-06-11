@@ -47,9 +47,9 @@ func saveNotificationState(state NotificationState) error {
 }
 
 func determineCurrentStatus(daysLeft int, settings Settings) string {
-	if daysLeft <= settings.Dashboard.ColorThresholds.Critical {
+	if daysLeft < settings.Dashboard.ColorThresholds.Critical {
 		return "critical"
-	} else if daysLeft <= settings.Dashboard.ColorThresholds.Warning {
+	} else if daysLeft < settings.Dashboard.ColorThresholds.Warning {
 		return "warning"
 	} else {
 		return "normal"

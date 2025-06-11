@@ -84,7 +84,7 @@ func initializeDefaultSettings() error {
 				Warning  int `json:"warning"`
 				Critical int `json:"critical"`
 			}{
-				Warning:  30,
+				Warning:  28,
 				Critical: 7,
 			},
 		},

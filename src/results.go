@@ -53,9 +53,9 @@ func loadResults() (ScanResults, error) {
 }
 
 func getColorClass(daysLeft int, settings Settings) string {
-	if daysLeft <= settings.Dashboard.ColorThresholds.Critical {
+	if daysLeft < settings.Dashboard.ColorThresholds.Critical {
 		return "red"
-	} else if daysLeft <= settings.Dashboard.ColorThresholds.Warning {
+	} else if daysLeft < settings.Dashboard.ColorThresholds.Warning {
 		return "yellow"
 	} else {
 		return "green"
