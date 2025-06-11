@@ -118,6 +118,10 @@ Each Go file contains domain-specific logic with separate template files:
 - `notify-send.go`: Service-specific notification delivery
 - `main.go`: Application orchestration and HTTP routing
 
+### Security
+
+There are no security measures implemented. You should run this app inside a secure network and/or behind a proxy with basic auth.
+
 ### Local Development
 
 ```bash
