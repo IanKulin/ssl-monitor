@@ -5,10 +5,10 @@ A lightweight application that monitors SSL certificate expiry dates and sends n
 ## What It Does
 
 This tool helps prevent unexpected SSL certificate expirations by:
-- **Automatically scanning**  websites for certificate expiry dates
-- **Visual dashboard** to see all certificate status at a glance
-- **Notifications** via email (Postmark) and push notifications (NTFY)
-- **Relevant alerts** - only notifies when certificate status actually changes
+- Scanning websites for certificate expiry dates
+- Listing their certificate status on the dashboard
+- Sending notifications via email (Postmark) and/or push (NTFY)
+- Notifications for two levels, only trigger when certificate status changes
 
 ## Quick Start
 
@@ -16,6 +16,9 @@ This tool helps prevent unexpected SSL certificate expirations by:
 # Clone or download the project
 git clone <your-repo-url>
 cd ssl-monitor
+
+# build go binary
+
 
 # Build and run with Docker Compose
 docker-compose up -d --build
