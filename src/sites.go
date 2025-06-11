@@ -32,7 +32,7 @@ func loadSites() ([]Site, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// File doesn't exist, create default sites list
-			fmt.Println("Sites file not found, creating default empty sites list...")
+			LogInfo("Sites file not found, creating default empty sites list...")
 			err = initializeDefaultSites()
 			if err != nil {
 				return nil, fmt.Errorf("failed to create default sites file: %w", err)

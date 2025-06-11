@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 )
 
@@ -10,7 +9,7 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 	// Load notification state to check current statuses
 	state, err := loadNotificationState()
 	if err != nil {
-		log.Printf("Error loading notification state: %v", err)
+		LogError("Error loading notification state: %v", err)
 		http.Error(w, "Error checking status", http.StatusInternalServerError)
 		return
 	}
@@ -42,5 +41,5 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Log the status check
-	log.Printf("Status endpoint accessed: critical=%d, warning=%d", criticalCount, warningCount)
+	LogDebug("Status endpoint accessed: critical=%d, warning=%d", criticalCount, warningCount)
 }

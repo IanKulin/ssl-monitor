@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -75,12 +74,12 @@ func sendEmailNotification(result CertResult, status string, settings Settings) 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("NTFY HTTP error: %v", err)
+		LogError("NTFY HTTP error: %v", err)
 		return err
 	}
 	defer resp.Body.Close()
 
-	log.Printf("Email response: status=%d", resp.StatusCode)
+	LogDebug("Email response: status=%d", resp.StatusCode)
 
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("postmark returned status code: %d", resp.StatusCode)
@@ -108,7 +107,7 @@ func sendNtfyNotification(result CertResult, status string, settings Settings) e
 		tags = "warning,ssl-monitor,urgent"
 	}
 
-	log.Printf("Sending NTFY: URL=%s, Title=%s, Priority=%s", settings.Notifications.Ntfy.URL, title, priority)
+	LogInfo("Sending NTFY: URL=%s, Title=%s, Priority=%s", settings.Notifications.Ntfy.URL, title, priority)
 
 	req, err := http.NewRequest("POST", settings.Notifications.Ntfy.URL, strings.NewReader(message))
 	if err != nil {
@@ -122,17 +121,17 @@ func sendNtfyNotification(result CertResult, status string, settings Settings) e
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("NTFY HTTP error: %v", err)
+		LogError("NTFY HTTP error: %v", err)
 		return err
 	}
 	defer resp.Body.Close()
 
-	log.Printf("NTFY response: status=%d", resp.StatusCode)
+	LogDebug("NTFY response: status=%d", resp.StatusCode)
 
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("ntfy returned status code: %d", resp.StatusCode)
 	}
 
-	log.Printf("NTFY notification sent successfully for %s", result.URL)
+	LogDebug("NTFY notification sent successfully for %s", result.URL)
 	return nil
 }
