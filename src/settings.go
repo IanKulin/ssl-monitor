@@ -65,12 +65,12 @@ func initializeDefaultSettings() error {
 		Notifications: NotificationSettings{
 			Ntfy: NtfySettings{
 				EnabledWarning:  false,
-				EnabledCritical: true,
+				EnabledCritical: false,
 				URL:             "",
 			},
 			Email: EmailSettings{
-				EnabledWarning:  true,
-				EnabledCritical: true,
+				EnabledWarning:  false,
+				EnabledCritical: false,
 				Provider:        "postmark",
 				ServerToken:     "",
 				From:            "",
