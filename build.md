@@ -9,3 +9,6 @@
 ## to build and push for production
 - `docker build --platform linux/amd64 -t ghcr.io/iankulin/ssl-monitor:latest .`
 - `docker push ghcr.io/iankulin/ssl-monitor:latest`
+
+## to build binary
+- `go build -o release/ssl-monitor ./src`
