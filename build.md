@@ -10,5 +10,10 @@
 - `docker build --platform linux/amd64 -t ghcr.io/iankulin/ssl-monitor:latest .`
 - `docker push ghcr.io/iankulin/ssl-monitor:latest`
 
-## to build binary
+## to build binaries on Mac
 - `go build -o release/ssl-monitor ./src`
+- `GOOS=linux GOARCH=amd64 go build -o release/ssl-monitor-linux ./src`
+- `GOOS=windows GOARCH=amd64 go build -o release/ssl-monitor.exe ./src`
+
+## run binary locally
+- `LOG_LEVEL=INFO release/ssl-monitor`
