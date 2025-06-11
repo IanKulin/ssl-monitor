@@ -7,7 +7,7 @@ A lightweight application that monitors SSL certificate expiry dates and sends n
 This tool helps prevent unexpected SSL certificate expirations by:
 - Scanning websites for certificate expiry dates
 - Listing their certificate status on the dashboard
-- Sending notifications via email (Postmark) and/or push (NTFY)
+- Sending notifications via email (Postmark) and/or push (ntfy)
 - Notifications for two levels, only trigger when certificate status changes
 
 ## Quick Start
@@ -38,7 +38,7 @@ Visit `http://localhost:8080/sites` to add websites you want to monitor. Just en
 Visit `http://localhost:8080/settings` to:
 - Set warning/critical thresholds (e.g., warn at 30 days, critical at 7 days)
 - Configure email notifications (requires Postmark account)
-- Set up push notifications (via NTFY)
+- Set up push notifications (via ntfy)
 - Test your notification settings
 
 ### 3. Monitor Your Certificates
@@ -49,14 +49,18 @@ The dashboard at `http://localhost:8080/results` shows:
 
 ## How Notifications Work
 
-1. **Unified Thresholds**: Set warning (e.g., 30 days) and critical (e.g., 7 days) thresholds
-2. **Status Change Detection**: Only sends notifications when a certificate's status actually changes
-3. **Per-Service Control**: Choose which services get warning vs critical alerts
-4. **No Spam**: Sites at the same status don't generate repeat notifications
-5. **Instant Updates**: Changing thresholds immediately updates all statuses
+There are two thresholds, "warning", and "critical". These refer to the number of days left on the certificates for each site. 
+
+Typically you would set "warning" to the number of days your automated systems will renew the certificates at - 28 would mean that you'll never see a warning message if you're using the popular renewal methods and everything is working correctly. For the "critical" level, it's probably the number of days it would take to manually fix a certificate problem. The default is 7.
+
+The those thresholds are used for the coloured indicators on the Results page. Any critical sites (days left on the certificate is less the critical threshold) are shown as red, warning sites as yellow and the others as green.
+
+The notifications will trigger for any site that goes from green into warning, or warning into critical. The notification methods (ntfy or PostMark email) can be set to trigger on either or both of those state changes.
+
+The notifications are only sent once for each change. If a site is in the 'critical' state, you will have received a single notification when it changed - not one repeating every day.
 
 ### Example Behavior
-With thresholds set to warning: 30 days, critical: 7 days:
+With thresholds set to warning: 28 days, critical: 7 days:
 
 - **Site at 45 days**: 🟢 Green "Good" - no notifications
 - **Site drops to 25 days**: 🟡 Yellow "Warning" - sends notification once
@@ -71,7 +75,7 @@ With thresholds set to warning: 30 days, critical: 7 days:
 - Sends HTML-formatted emails with certificate details
 - Configure in Settings → Email Notifications
 
-**Push Notifications (NTFY)**
+**Push Notifications (ntfy)**
 - Free service for instant mobile/desktop notifications
 - Visit [ntfy.sh](https://ntfy.sh) to create a topic
 - Configure in Settings → NTFY Notifications
@@ -103,7 +107,7 @@ ssl-monitor/
     └── notifications.json   # Notification history and state
 ```
 
-### File Organization Philosophy
+### File Organisation Philosophy
 
 Each Go file contains domain-specific logic with separate template files:
 - `settings.go` + `settings-html.go`: Settings management and web interface
@@ -143,9 +147,9 @@ docker-compose logs -f ssl-monitor
 docker-compose up -d --build
 ```
 
-## Current Status
+## Current Development Status
 
-### Completed Features ✅
+### Features
 
 **SSL Certificate Scanning**
 - Connects to websites on port 443
@@ -162,7 +166,7 @@ docker-compose up -d --build
 - Web-based settings interface
 - Unified thresholds for dashboard and notifications
 - Per-service notification toggles (warning/critical)
-- Test buttons for notifications
+- Buttons for testing notification methods
 - Instant notification status updates when thresholds change
 
 **Sites Management**
@@ -186,7 +190,7 @@ docker-compose up -d --build
 - Postmark email and NTFY push notification support
 - Immediate reprocessing when thresholds change (no certificate re-checking required)
 
-**Containerization**
+**Containerisation**
 - Multi-stage Docker build for minimal image size
 - Docker Compose setup with volume persistence
 - Built-in default configuration
@@ -203,6 +207,8 @@ docker-compose up -d --build
 - Docker Compose setup with bind mounts
 
 ## Configuration Files
+
+All the data persistence, including the settings are JSON
 
 ### Settings File (`data/settings.json`)
 
@@ -251,27 +257,6 @@ docker-compose up -d --build
 }
 ```
 
-## How Notifications Work
-
-The notification system uses a simple, predictable approach:
-
-1. Dashboard color thresholds control both UI display and notification triggers
-2. Notifications only sent when a site's status changes (normal → warning → critical)
-3. Each notification service can be enabled/disabled for warning and critical levels independently
-4. Sites at the same status level don't generate repeat notifications
-5.  Changing threshold settings immediately updates notification status without re-scanning certificates
-
-### Example Behavior
-
-With thresholds `warning: 30, critical: 7`:
-
-- **Site at 45 days**: Green "Good", no notifications
-- **Site drops to 25 days**: Yellow "Warning", sends to services with `enabled_warning: true`
-- **Site stays at 25 days**: No additional notifications (no status change)
-- **Site drops to 5 days**: Red "Critical", sends to services with `enabled_critical: true`
-- **Certificate renewed to 90 days**: Green "Good", no notifications (but history updated)
-- **Threshold changed from 30→40**: Immediate notification if site status changes from normal to warning
-
 ## Web Interface
 
 - **Dashboard/Results**: `/results` - View certificate status and scan results
@@ -283,12 +268,6 @@ With thresholds `warning: 30, critical: 7`:
 ## Roadmap
 
 ### Immediate Priorities
-
-🔲 **Bugs**
-- on settings page - test buttons for testing notifications don't use the settings you've just entered (but not saved)
-- every web page should have buttons for "Results", "Sites", "Settings"
-- '/' route should redirect to /results
-
 
 ### Possible Future Enhancements
 🔲 **Distribution**
