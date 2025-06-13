@@ -23,7 +23,12 @@ const resultsTemplate = `
             --btn-warning-bg: #ffc107;
             --btn-warning-hover: #e0a800;
             --btn-warning-text: #212529;
+            --btn-scanning-bg: #6c757d;
+            --btn-scanning-text: #e9ecef;
             --shadow: rgba(0,0,0,0.1);
+            --scanning-bg: #e7f3ff;
+            --scanning-border: #b3d9ff;
+            --scanning-text: #0c5460;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -44,7 +49,12 @@ const resultsTemplate = `
                 --btn-warning-bg: #d4b806;
                 --btn-warning-hover: #b89f05;
                 --btn-warning-text: #1a1a1a;
+                --btn-scanning-bg: #495057;
+                --btn-scanning-text: #adb5bd;
                 --shadow: rgba(0,0,0,0.3);
+                --scanning-bg: #1e3a4a;
+                --scanning-border: #2e5a7a;
+                --scanning-text: #7dd3fc;
             }
         }
 
@@ -177,10 +187,70 @@ const resultsTemplate = `
             cursor: pointer;
             font-weight: 600;
         }
-        .btn-scan-now:hover {
+        .btn-scan-now:hover:not(:disabled) {
             background: var(--btn-warning-hover);
         }
+        .btn-scan-now:disabled {
+            background: var(--btn-scanning-bg);
+            color: var(--btn-scanning-text);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
+        /* Scanning status styles */
+        .scanning-status {
+            background: var(--scanning-bg);
+            border: 1px solid var(--scanning-border);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px var(--shadow);
+        }
+        .scanning-content {
+            padding: 15px 20px;
+        }
+        .scanning-content strong {
+            color: var(--scanning-text);
+            font-size: 16px;
+        }
+        .scanning-content p {
+            margin: 8px 0 0 0;
+            color: var(--scanning-text);
+        }
+        
+        /* Spinner animation */
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top-color: var(--scanning-text);
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Auto-refresh notice */
+        .auto-refresh {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            font-style: italic;
+        }
     </style>
+    
+    {{if .IsScanning}}
+    <script>
+        // Auto-refresh every 3 seconds while scanning
+        setTimeout(function() {
+            window.location.reload();
+        }, 3000);
+    </script>
+    {{end}}
 </head>
 <body>
     <div class="nav">
@@ -198,7 +268,15 @@ const resultsTemplate = `
         {{end}}
     </div>
 
-    {{if .IsStale}}
+    {{if .IsScanning}}
+    <div class="scanning-status">
+        <div class="scanning-content">
+            <strong><span class="spinner"></span>Scanning in progress...</strong>
+            <p>Please wait while we check all certificate expiry dates.</p>
+            <div class="auto-refresh">This page will refresh automatically every 3 seconds.</div>
+        </div>
+    </div>
+    {{else if .IsStale}}
     <div class="stale-warning">
         <div class="stale-content">
             <strong>⚠️ Results may be outdated</strong>

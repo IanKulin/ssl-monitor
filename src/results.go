@@ -7,8 +7,28 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"sync"
 	"time"
 )
+
+// Global scanning state
+var (
+	isScanning bool
+	scanMutex  sync.RWMutex
+)
+
+// Helper functions to manage scanning state
+func setScanningState(scanning bool) {
+	scanMutex.Lock()
+	defer scanMutex.Unlock()
+	isScanning = scanning
+}
+
+func getScanningState() bool {
+	scanMutex.RLock()
+	defer scanMutex.RUnlock()
+	return isScanning
+}
 
 type ResultDisplay struct {
 	URL        string
@@ -26,7 +46,8 @@ type ResultsPageData struct {
 	Results      []ResultDisplay
 	IsStale      bool
 	LastModified time.Time
-	Settings     Settings // Add settings so template can access thresholds
+	Settings     Settings
+	IsScanning   bool // Add scanning state to page data
 }
 
 func loadSitesList() (SitesList, error) {
@@ -65,8 +86,22 @@ func getColorClass(daysLeft int, settings Settings) string {
 	}
 }
 
+// Scan function that manages state
+func runScanWithState(sites []Site) {
+	setScanningState(true)
+	defer setScanningState(false)
+	
+	runScanWithNotifications(sites)
+}
+
 func resultsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" && r.FormValue("action") == "scan_now" {
+		// Check if already scanning
+		if getScanningState() {
+			http.Error(w, "Scan already in progress", http.StatusConflict)
+			return
+		}
+
 		// Load sites and run immediate scan with notifications
 		sites, err := loadSites()
 		if err != nil {
@@ -74,10 +109,10 @@ func resultsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Run scan with notifications (using the shared function from main.go)
-		runScanWithNotifications(sites)
+		// Run scan in goroutine to avoid blocking the response
+		go runScanWithState(sites)
 
-		// Redirect to prevent re-submission
+		// Redirect to show scanning state
 		http.Redirect(w, r, "/results", http.StatusSeeOther)
 		return
 	}
@@ -151,7 +186,8 @@ func resultsHandler(w http.ResponseWriter, r *http.Request) {
 		Results:      displayResults,
 		IsStale:      isStale,
 		LastModified: sitesList.LastModified,
-		Settings:     settings, // Pass settings to template
+		Settings:     settings,
+		IsScanning:   getScanningState(),
 	}
 
 	parsedTemplate := template.Must(template.New("results").Parse(resultsTemplate))
