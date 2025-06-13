@@ -9,9 +9,13 @@
 - `docker run --name ssl-monitor -p 80:8080 ghcr.io/iankulin/ssl-monitor:latest`
 - http://localhost
 
-## to build and push for production
+## to build and push for production github repo
 - `docker build --platform linux/amd64 -t ghcr.io/iankulin/ssl-monitor:latest .`
 - `docker push ghcr.io/iankulin/ssl-monitor:latest`
+
+## to build and push for production docker hub repo
+- `docker build --platform linux/amd64 -t iankulin/ssl-monitor:latest .`
+- `docker push iankulin/ssl-monitor:latest`
 
 ## to build binaries on Mac
 - `go build -o release/ssl-monitor ./src`

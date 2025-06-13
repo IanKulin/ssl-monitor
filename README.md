@@ -8,7 +8,7 @@ This tool helps prevent unexpected SSL certificate expirations by:
 - Scanning websites for certificate expiry dates
 - Listing their certificate status on the dashboard
 - Sending notifications via email (Postmark) and/or push (ntfy)
-- Notifications for two levels, only trigger when certificate status changes
+- Notifications for two levels, which only trigger when certificate status changes
 
 ## Quick Start
 
