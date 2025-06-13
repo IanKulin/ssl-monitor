@@ -1,6 +1,7 @@
 # Ignore data directory - will be mounted as volume
 data/
 data.old/
+testdata/
 
 # Git files
 .git
@@ -25,3 +26,6 @@ ssl-monitor-*
 
 # Logs
 *.log
+
+# Test files
+**/*_test.go

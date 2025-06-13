@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -111,7 +112,8 @@ func scanAllSites(sites []Site) ScanResults {
 }
 
 func saveResults(results ScanResults) error {
-	LogDebug("Saving scan results to data/results.json")
+	resultsFilePath := filepath.Join(dataDirPath, "results.json")
+	LogDebug("Saving scan results to %s", resultsFilePath)
 
 	data, err := json.MarshalIndent(results, "", "  ")
 	if err != nil {
@@ -119,9 +121,9 @@ func saveResults(results ScanResults) error {
 		return err
 	}
 
-	err = os.WriteFile("data/results.json", data, 0644)
+	err = os.WriteFile(resultsFilePath, data, 0644)
 	if err != nil {
-		LogError("Error writing scan results file: %v", err)
+		LogError("Error writing scan results file %s: %v", resultsFilePath, err)
 		return err
 	}
 

@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sort"
 	"time"
 )
@@ -30,8 +31,9 @@ type ResultsPageData struct {
 
 func loadSitesList() (SitesList, error) {
 	var sitesList SitesList
+	sitesFilePath := filepath.Join(dataDirPath, "sites.json")
 
-	data, err := os.ReadFile("data/sites.json")
+	data, err := os.ReadFile(sitesFilePath)
 	if err != nil {
 		return sitesList, err
 	}
@@ -42,8 +44,9 @@ func loadSitesList() (SitesList, error) {
 
 func loadResults() (ScanResults, error) {
 	var results ScanResults
+	resultsFilePath := filepath.Join(dataDirPath, "results.json")
 
-	data, err := os.ReadFile("data/results.json")
+	data, err := os.ReadFile(resultsFilePath)
 	if err != nil {
 		return results, err
 	}

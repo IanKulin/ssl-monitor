@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -17,11 +18,16 @@ type NotificationState struct {
 	NotificationHistory  map[string]NotificationHistory `json:"notification_history"`
 }
 
+func getNotificationFilePath() string {
+	return filepath.Join(dataDirPath, "notifications.json")
+}
+
 func loadNotificationState() (NotificationState, error) {
 	var state NotificationState
 	state.NotificationHistory = make(map[string]NotificationHistory)
+	filePath := getNotificationFilePath()
 
-	data, err := os.ReadFile("data/notifications.json")
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		// File doesn't exist yet, return empty state
 		if os.IsNotExist(err) {
@@ -39,11 +45,12 @@ func loadNotificationState() (NotificationState, error) {
 }
 
 func saveNotificationState(state NotificationState) error {
+	filePath := getNotificationFilePath()
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile("data/notifications.json", data, 0644)
+	return os.WriteFile(filePath, data, 0644)
 }
 
 func determineCurrentStatus(daysLeft int, settings Settings) string {
