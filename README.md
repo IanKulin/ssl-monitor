@@ -10,26 +10,7 @@ This tool helps prevent unexpected SSL certificate expirations by:
 - Sending notifications via email (Postmark) and/or push (ntfy)
 - Notifications for two levels, which only trigger when certificate status changes
 
-## Quick Start
-
-```bash
-# Clone or download the project
-git clone <your-repo-url>
-cd ssl-monitor
-
-# build go binary
-
-
-# Build and run with Docker Compose
-docker-compose up -d --build
-
-# Access the web interface
-open http://localhost:8080/results
-```
-
-The container includes default settings and is ready to use immediately. Configuration persists in the `./data` directory.
-
-## Using the Application
+## Using the SSL Certificate Monitor
 
 ### 1. Add Your Websites
 Visit `http://localhost:8080/sites` to add websites you want to monitor. Just enter the domain name (e.g., `google.com`) - no need for `https://`.

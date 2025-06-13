@@ -18,7 +18,7 @@
 - `docker push iankulin/ssl-monitor:latest`
 
 ## to build binaries on Mac
-- `go build -o release/ssl-monitor ./src`
+- `go build -o release/ssl-monitor-mac ./src`
 - `GOOS=linux GOARCH=amd64 go build -o release/ssl-monitor-linux ./src`
 - `GOOS=windows GOARCH=amd64 go build -o release/ssl-monitor.exe ./src`
 
