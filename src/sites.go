@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -23,12 +24,14 @@ func initializeDefaultSites() error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile("data/sites.json", data, 0644)
+	sitesFilePath := filepath.Join(dataDirPath, "sites.json")
+	return os.WriteFile(sitesFilePath, data, 0644)
 }
 
 // Update the loadSites function
 func loadSites() ([]Site, error) {
-	data, err := os.ReadFile("data/sites.json")
+	sitesFilePath := filepath.Join(dataDirPath, "sites.json")
+	data, err := os.ReadFile(sitesFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// File doesn't exist, create default sites list
@@ -38,7 +41,7 @@ func loadSites() ([]Site, error) {
 				return nil, fmt.Errorf("failed to create default sites file: %w", err)
 			}
 			// Load the newly created sites
-			data, err = os.ReadFile("data/sites.json")
+			data, err = os.ReadFile(sitesFilePath)
 			if err != nil {
 				return nil, err
 			}
@@ -65,7 +68,8 @@ func saveSites(sites []Site) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile("data/sites.json", data, 0644)
+	sitesFilePath := filepath.Join(dataDirPath, "sites.json")
+	return os.WriteFile(sitesFilePath, data, 0644)
 }
 
 func sitesHandler(w http.ResponseWriter, r *http.Request) {
@@ -114,6 +118,21 @@ func sitesHandler(w http.ResponseWriter, r *http.Request) {
 	parsedTemplate.Execute(w, sites)
 }
 
+// Case-insensitive protocol removal
+func stripProtocol(url string) string {
+	// Convert to lowercase for comparison
+	lowerURL := strings.ToLower(url)
+	
+	if strings.HasPrefix(lowerURL, "https://") {
+		return url[8:] // Remove "https://" (8 characters)
+	}
+	if strings.HasPrefix(lowerURL, "http://") {
+		return url[7:] // Remove "http://" (7 characters)
+	}
+	
+	return url
+}
+
 func addSite(r *http.Request) error {
 	err := r.ParseForm()
 	if err != nil {
@@ -127,9 +146,7 @@ func addSite(r *http.Request) error {
 		return nil // Ignore empty submissions
 	}
 
-	// Remove protocol if present
-	url = strings.TrimPrefix(url, "https://")
-	url = strings.TrimPrefix(url, "http://")
+	url = stripProtocol(url)
 
 	sites, err := loadSites()
 	if err != nil {
@@ -166,9 +183,7 @@ func editSite(r *http.Request) error {
 		return nil // Ignore empty submissions
 	}
 
-	// Remove protocol if present
-	url = strings.TrimPrefix(url, "https://")
-	url = strings.TrimPrefix(url, "http://")
+	url = stripProtocol(url)
 
 	sites, err := loadSites()
 	if err != nil {

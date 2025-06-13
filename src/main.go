@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+var dataDirPath = "data" // Added global variable
+
 func runScanWithNotifications(sites []Site) {
 	runScanWithNotificationsMode(sites, false) // false = full scan
 }
@@ -67,7 +69,11 @@ func main() {
 	initLogging()
 
 	// Create data directory if it doesn't exist
-	os.MkdirAll("data", 0755)
+	err := os.MkdirAll(dataDirPath, 0755)
+	if err != nil {
+		LogError("Error creating data directory %s: %v", dataDirPath, err)
+		os.Exit(1)
+	}
 
 	settings, err := loadSettings()
 	if err != nil {

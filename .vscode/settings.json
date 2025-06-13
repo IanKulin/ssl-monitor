@@ -18,6 +18,7 @@
     "Organisation",
     "rescan",
     "stackoverflow",
+    "testdata",
     "tzdata"
   ],
   "[go]": {

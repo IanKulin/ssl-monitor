@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -95,8 +96,9 @@ func initializeDefaultSettings() error {
 
 func loadSettings() (Settings, error) {
 	var settings Settings
+	settingsFilePath := filepath.Join(dataDirPath, "settings.json")
 
-	data, err := os.ReadFile("data/settings.json")
+	data, err := os.ReadFile(settingsFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// File doesn't exist, create default settings
@@ -106,7 +108,7 @@ func loadSettings() (Settings, error) {
 				return settings, fmt.Errorf("failed to create default settings: %w", err)
 			}
 			// Load the newly created settings
-			data, err = os.ReadFile("data/settings.json")
+			data, err = os.ReadFile(settingsFilePath)
 			if err != nil {
 				return settings, err
 			}
@@ -126,7 +128,8 @@ func loadSettings() (Settings, error) {
 }
 
 func saveSettings(settings Settings) error {
-	LogDebug("Saving settings to data/settings.json")
+	settingsFilePath := filepath.Join(dataDirPath, "settings.json")
+	LogDebug("Saving settings to %s", settingsFilePath)
 	
 	data, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
@@ -134,9 +137,9 @@ func saveSettings(settings Settings) error {
 		return err
 	}
 	
-	err = os.WriteFile("data/settings.json", data, 0644)
+	err = os.WriteFile(settingsFilePath, data, 0644)
 	if err != nil {
-		LogError("Error writing settings file: %v", err)
+		LogError("Error writing settings file %s: %v", settingsFilePath, err)
 		return err
 	}
 

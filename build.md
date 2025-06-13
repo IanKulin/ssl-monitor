@@ -1,5 +1,8 @@
+## run tests
+- `go test ./src/...`
+
 ## run locally
-- `LOG_LEVEL=INFO go run src/*.go`
+- `LOG_LEVEL=INFO ggo run $(find src -name '*.go' ! -name '*_test.go')`
 
 ## to build & run for testing
 - `docker build -t ghcr.io/iankulin/ssl-monitor:latest .`
